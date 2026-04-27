@@ -8,6 +8,7 @@ import { LeaderboardView } from "./LeaderboardView";
 import { ReferView } from "./ReferView";
 import { SEED_CONVERSATIONS, SEED_USER, PERSONAS } from "@/lib/widget-data";
 import type { Conversation, Lang, Message, User } from "@/lib/widget-types";
+import { aicpp, isOnline } from "@/lib/aicpp";
 
 type View = "chat" | "profile" | "leaderboard" | "refer";
 
@@ -75,7 +76,17 @@ export function Widget() {
   }
 
   function pin(id: string) {
-    setConversations((prev) => prev.map((c) => (c.id === id ? { ...c, pinned: !c.pinned } : c)));
+    const target = conversations.find((c) => c.id === id);
+    const next = target ? !target.pinned : true;
+    setConversations((prev) => prev.map((c) => (c.id === id ? { ...c, pinned: next } : c)));
+    if (isOnline()) {
+      aicpp("aicpp_pin_conversation", { conversation_id: id, pinned: next ? 1 : 0 }).then((res) => {
+        if (!res.ok && !res.offline) {
+          // revert on failure
+          setConversations((prev) => prev.map((c) => (c.id === id ? { ...c, pinned: !next } : c)));
+        }
+      });
+    }
   }
 
   const dir = lang === "ar" ? "rtl" : "ltr";

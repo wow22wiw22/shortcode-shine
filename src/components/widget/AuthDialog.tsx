@@ -7,6 +7,7 @@ import { t } from "@/lib/widget-i18n";
 import type { Lang, User } from "@/lib/widget-types";
 import { SEED_USER } from "@/lib/widget-data";
 import { toast } from "sonner";
+import { aicpp, isOnline } from "@/lib/aicpp";
 
 type Props = {
   open: boolean;
@@ -20,24 +21,58 @@ export function AuthDialog({ open, onOpenChange, lang, onAuth }: Props) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [username, setUsername] = useState("");
+  const [referral, setReferral] = useState("");
+  const [busy, setBusy] = useState(false);
 
-  function submit(e: React.FormEvent) {
+  async function submit(e: React.FormEvent) {
     e.preventDefault();
     if (!email || !password || (mode === "register" && !username)) {
       toast.error("Please fill all fields");
       return;
     }
-    // In production: POST to aicpp_login_user / aicpp_register_user
-    const user: User = {
-      ...SEED_USER,
-      id: `u_${Date.now()}`,
-      email,
-      username: mode === "register" ? username : email.split("@")[0],
-      referralCode: `VRS-${(username || email.split("@")[0]).toUpperCase().slice(0, 6)}-22`,
-    };
-    onAuth(user);
-    onOpenChange(false);
-    toast.success(mode === "login" ? "Welcome back!" : "Account created!");
+    setBusy(true);
+    try {
+      if (isOnline()) {
+        const action = mode === "login" ? "aicpp_login_user" : "aicpp_register_user";
+        const res = await aicpp<any>(action, {
+          email,
+          password,
+          username: mode === "register" ? username : undefined,
+          referral_code: mode === "register" ? referral || undefined : undefined,
+        });
+        if (!res.ok) {
+          toast.error(res.error);
+          return;
+        }
+        const d = res.data ?? {};
+        const user: User = {
+          id: String(d.user_id ?? d.id ?? `u_${Date.now()}`),
+          username: d.username ?? username ?? email.split("@")[0],
+          email: d.email ?? email,
+          avatar: d.avatar ?? "🦊",
+          bio: d.bio ?? "",
+          joinedAt: d.joined_at ? Number(d.joined_at) * 1000 : Date.now(),
+          messageCount: Number(d.message_count ?? 0),
+          referralCode: d.referral_code ?? `VRS-${(d.username || email.split("@")[0]).toUpperCase().slice(0, 6)}-22`,
+          referredCount: Number(d.referred_count ?? 0),
+        };
+        onAuth(user);
+      } else {
+        // Preview-mode fallback
+        const user: User = {
+          ...SEED_USER,
+          id: `u_${Date.now()}`,
+          email,
+          username: mode === "register" ? username : email.split("@")[0],
+          referralCode: `VRS-${(username || email.split("@")[0]).toUpperCase().slice(0, 6)}-22`,
+        };
+        onAuth(user);
+      }
+      onOpenChange(false);
+      toast.success(mode === "login" ? "Welcome back!" : "Account created!");
+    } finally {
+      setBusy(false);
+    }
   }
 
   return (
@@ -64,8 +99,14 @@ export function AuthDialog({ open, onOpenChange, lang, onAuth }: Props) {
             <Label>{t(lang, "password")}</Label>
             <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
           </div>
-          <Button type="submit" className="w-full bg-[image:var(--gradient-primary)] text-primary-foreground hover:opacity-90">
-            {t(lang, "continue")}
+          {mode === "register" && (
+            <div className="space-y-1.5">
+              <Label>Referral code (optional)</Label>
+              <Input value={referral} onChange={(e) => setReferral(e.target.value)} placeholder="VRS-FRIEND-22" />
+            </div>
+          )}
+          <Button type="submit" disabled={busy} className="w-full bg-[image:var(--gradient-primary)] text-primary-foreground hover:opacity-90">
+            {busy ? "…" : t(lang, "continue")}
           </Button>
           <button
             type="button"

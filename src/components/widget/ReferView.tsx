@@ -1,14 +1,30 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { t } from "@/lib/widget-i18n";
 import type { Lang, User } from "@/lib/widget-types";
 import { Gift, Copy, Check, Share2, Users } from "lucide-react";
 import { toast } from "sonner";
+import { aicpp, isOnline } from "@/lib/aicpp";
 
 export function ReferView({ lang, user }: { lang: Lang; user: User }) {
   const [copied, setCopied] = useState(false);
-  const link = `${typeof window !== "undefined" ? window.location.origin : ""}/?ref=${user.referralCode}`;
+  const [code, setCode] = useState(user.referralCode);
+  const [count, setCount] = useState(user.referredCount);
+  const link = `${typeof window !== "undefined" ? window.location.origin : ""}/?ref=${code}`;
+
+  useEffect(() => {
+    if (!isOnline()) return;
+    let cancelled = false;
+    (async () => {
+      const res = await aicpp<{ referral_code: string; referred_count: number }>("aicpp_get_referral_data");
+      if (!cancelled && res.ok) {
+        if (res.data.referral_code) setCode(res.data.referral_code);
+        if (typeof res.data.referred_count === "number") setCount(res.data.referred_count);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
 
   function copy() {
     navigator.clipboard.writeText(link);
@@ -42,7 +58,7 @@ export function ReferView({ lang, user }: { lang: Lang; user: User }) {
         <div className="text-xs uppercase tracking-wider text-muted-foreground">{t(lang, "yourCode")}</div>
         <div className="mt-2 flex items-center gap-2">
           <div className="flex-1 rounded-md border border-dashed border-primary/40 bg-secondary px-3 py-2.5 font-mono text-sm font-bold text-primary">
-            {user.referralCode}
+            {code}
           </div>
           <Button onClick={copy} variant="outline" size="icon">
             {copied ? <Check className="h-4 w-4 text-primary" /> : <Copy className="h-4 w-4" />}
@@ -61,11 +77,11 @@ export function ReferView({ lang, user }: { lang: Lang; user: User }) {
             <Users className="h-5 w-5" />
           </div>
           <div className="flex-1">
-            <div className="text-2xl font-bold">{user.referredCount}</div>
+            <div className="text-2xl font-bold">{count}</div>
             <div className="text-xs text-muted-foreground">{t(lang, "invitedFriends")}</div>
           </div>
           <div className="text-right">
-            <div className="text-2xl font-bold text-primary">{user.referredCount * 100}</div>
+            <div className="text-2xl font-bold text-primary">{count * 100}</div>
             <div className="text-xs text-muted-foreground">credits earned</div>
           </div>
         </div>

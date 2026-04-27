@@ -5,7 +5,8 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { t } from "@/lib/widget-i18n";
 import type { Conversation, Lang, User } from "@/lib/widget-types";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { aicpp, isOnline } from "@/lib/aicpp";
 
 type View = "chat" | "profile" | "leaderboard" | "refer";
 
@@ -32,17 +33,40 @@ export function WidgetSidebar({
   const [q, setQ] = useState("");
   const [renaming, setRenaming] = useState<string | null>(null);
   const [draft, setDraft] = useState("");
+  const [serverHits, setServerHits] = useState<Set<string> | null>(null);
+
+  // Server-side message search (aicpp_search_messages) — debounced.
+  useEffect(() => {
+    if (!isOnline() || q.trim().length < 2) {
+      setServerHits(null);
+      return;
+    }
+    const handle = setTimeout(async () => {
+      const res = await aicpp<{ conversation_ids: (string | number)[] }>(
+        "aicpp_search_messages",
+        { query: q.trim() }
+      );
+      if (res.ok && Array.isArray(res.data?.conversation_ids)) {
+        setServerHits(new Set(res.data.conversation_ids.map(String)));
+      }
+    }, 300);
+    return () => clearTimeout(handle);
+  }, [q]);
 
   const filtered = useMemo(() => {
-    const list = conversations.filter((c) =>
-      c.title.toLowerCase().includes(q.toLowerCase()) ||
-      c.messages.some((m) => m.content.toLowerCase().includes(q.toLowerCase()))
-    );
+    const needle = q.toLowerCase();
+    const list = conversations.filter((c) => {
+      if (!q) return true;
+      if (c.title.toLowerCase().includes(needle)) return true;
+      if (c.messages.some((m) => m.content.toLowerCase().includes(needle))) return true;
+      if (serverHits && serverHits.has(c.id)) return true;
+      return false;
+    });
     return [...list].sort((a, b) => {
       if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
       return b.updatedAt - a.updatedAt;
     });
-  }, [conversations, q]);
+  }, [conversations, q, serverHits]);
 
   return (
     <aside className="flex h-full w-72 shrink-0 flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground">

@@ -11,6 +11,7 @@ import { t } from "@/lib/widget-i18n";
 import type { Conversation, Lang, Message } from "@/lib/widget-types";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { aicpp, isOnline } from "@/lib/aicpp";
 
 type Props = {
   lang: Lang;
@@ -36,26 +37,41 @@ export function ChatPanel({ lang, setLang, conversation, onAppend, onPickPersona
 
   async function send() {
     if (!input.trim() || !conversation || busy) return;
-    const msg: Message = { id: `m_${Date.now()}`, role: "user", content: input.trim(), ts: Date.now() };
+    const text = input.trim();
+    const msg: Message = { id: `m_${Date.now()}`, role: "user", content: text, ts: Date.now() };
     onAppend(msg);
     setInput("");
     setBusy(true);
-    setTimeout(() => {
-      const reply: Message = {
-        id: `m_${Date.now() + 1}`,
-        role: "assistant",
-        content: mockReply(conversation.personaId, msg.content),
-        ts: Date.now(),
-      };
-      onAppend(reply);
-      setBusy(false);
-      if (notifications && document.hidden && "Notification" in window && Notification.permission === "granted") {
-        new Notification(`${persona?.name ?? "AI"} replied`, { body: reply.content.slice(0, 80) });
-      }
-    }, 800);
+
+    let replyText: string;
+    if (isOnline()) {
+      const res = await aicpp<{ reply: string; message?: string }>("aicpp_send_message", {
+        conversation_id: conversation.id,
+        persona_id: conversation.personaId,
+        message: text,
+      });
+      replyText = res.ok
+        ? (res.data.reply ?? res.data.message ?? "")
+        : `⚠️ ${res.error}`;
+    } else {
+      await new Promise((r) => setTimeout(r, 700));
+      replyText = mockReply(conversation.personaId, text);
+    }
+
+    const reply: Message = {
+      id: `m_${Date.now() + 1}`,
+      role: "assistant",
+      content: replyText,
+      ts: Date.now(),
+    };
+    onAppend(reply);
+    setBusy(false);
+    if (notifications && document.hidden && "Notification" in window && Notification.permission === "granted") {
+      new Notification(`${persona?.name ?? "AI"} replied`, { body: reply.content.slice(0, 80) });
+    }
   }
 
-  function speak(m: Message) {
+  async function speak(m: Message) {
     if (!("speechSynthesis" in window)) {
       toast.error("Text-to-speech not supported in this browser");
       return;
@@ -66,6 +82,27 @@ export function ChatPanel({ lang, setLang, conversation, onAppend, onPickPersona
       return;
     }
     window.speechSynthesis.cancel();
+
+    // Try server-side TTS first (OpenAI via aicpp_speak). Falls back to
+    // the browser's SpeechSynthesis if the endpoint is unavailable.
+    if (isOnline()) {
+      const res = await aicpp<{ audio_url?: string; audio_base64?: string; mime?: string }>(
+        "aicpp_speak",
+        { text: m.content, lang }
+      );
+      if (res.ok && (res.data.audio_url || res.data.audio_base64)) {
+        const src = res.data.audio_url
+          ? res.data.audio_url
+          : `data:${res.data.mime ?? "audio/mpeg"};base64,${res.data.audio_base64}`;
+        const audio = new Audio(src);
+        setSpeakingId(m.id);
+        audio.onended = () => setSpeakingId(null);
+        audio.onerror = () => setSpeakingId(null);
+        await audio.play().catch(() => setSpeakingId(null));
+        return;
+      }
+    }
+
     const u = new SpeechSynthesisUtterance(m.content);
     const langMap: Record<Lang, string> = { en: "en-US", ar: "ar-SA", fr: "fr-FR", es: "es-ES" };
     u.lang = langMap[lang];
