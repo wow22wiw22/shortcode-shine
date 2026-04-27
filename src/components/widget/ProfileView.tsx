@@ -8,17 +8,35 @@ import { t } from "@/lib/widget-i18n";
 import type { Lang, User } from "@/lib/widget-types";
 import { MessageSquare, Calendar, Trophy, Pencil } from "lucide-react";
 import { toast } from "sonner";
+import { aicpp, isOnline } from "@/lib/aicpp";
 
 type Props = { lang: Lang; user: User; onUpdate: (u: User) => void };
 
 export function ProfileView({ lang, user, onUpdate }: Props) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(user);
+  const [busy, setBusy] = useState(false);
 
-  function save() {
-    onUpdate(draft);
-    setEditing(false);
-    toast.success("Profile updated");
+  async function save() {
+    setBusy(true);
+    try {
+      if (isOnline()) {
+        const res = await aicpp("aicpp_update_profile", {
+          username: draft.username,
+          bio: draft.bio,
+          avatar: draft.avatar,
+        });
+        if (!res.ok) {
+          toast.error(res.error);
+          return;
+        }
+      }
+      onUpdate(draft);
+      setEditing(false);
+      toast.success("Profile updated");
+    } finally {
+      setBusy(false);
+    }
   }
 
   return (
@@ -44,7 +62,9 @@ export function ProfileView({ lang, user, onUpdate }: Props) {
                   <Input maxLength={2} value={draft.avatar} onChange={(e) => setDraft({ ...draft, avatar: e.target.value })} />
                 </div>
                 <div className="flex gap-2">
-                  <Button onClick={save} className="bg-[image:var(--gradient-primary)] text-primary-foreground">{t(lang, "save")}</Button>
+                  <Button onClick={save} disabled={busy} className="bg-[image:var(--gradient-primary)] text-primary-foreground">
+                    {busy ? "…" : t(lang, "save")}
+                  </Button>
                   <Button variant="ghost" onClick={() => { setDraft(user); setEditing(false); }}>{t(lang, "cancel")}</Button>
                 </div>
               </div>

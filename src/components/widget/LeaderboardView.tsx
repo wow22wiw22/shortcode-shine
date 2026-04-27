@@ -4,6 +4,10 @@ import { t } from "@/lib/widget-i18n";
 import type { Lang, User } from "@/lib/widget-types";
 import { Trophy, Medal } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useEffect, useState } from "react";
+import { aicpp, isOnline } from "@/lib/aicpp";
+
+type Row = { rank: number; username: string; avatar: string; points: number; badge: string };
 
 const BADGE_COLORS: Record<string, string> = {
   Diamond: "text-cyan-300 bg-cyan-500/15",
@@ -14,6 +18,20 @@ const BADGE_COLORS: Record<string, string> = {
 };
 
 export function LeaderboardView({ lang, user }: { lang: Lang; user: User | null }) {
+  const [rows, setRows] = useState<Row[]>(LEADERBOARD_SEED);
+
+  useEffect(() => {
+    if (!isOnline()) return;
+    let cancelled = false;
+    (async () => {
+      const res = await aicpp<{ rows: Row[] }>("aicpp_get_leaderboard");
+      if (!cancelled && res.ok && Array.isArray(res.data?.rows)) {
+        setRows(res.data.rows);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
   return (
     <div className="mx-auto max-w-2xl px-4 py-8">
       <div className="mb-6 flex items-center gap-3">
@@ -28,7 +46,7 @@ export function LeaderboardView({ lang, user }: { lang: Lang; user: User | null 
 
       <Card className="overflow-hidden">
         <ul className="divide-y divide-border">
-          {LEADERBOARD_SEED.map((row) => {
+          {rows.map((row) => {
             const isYou = user?.username === row.username;
             return (
               <li
