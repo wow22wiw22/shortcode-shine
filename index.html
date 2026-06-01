@@ -25,8 +25,14 @@
       window.versace22_chat = {
         ajaxurl: '/wp-mock/admin-ajax.php',
         nonce: 'dev-nonce',
+        admin_nonce: 'dev-admin-nonce',
+        register_nonce: 'dev-register-nonce',
+        login_nonce: 'dev-login-nonce',
         persona_id: '1',
         session_id: 'sess_lovable_preview',
+        user_id: '0',
+        is_admin: false,
+        is_settings_page: false,
         user_logged_in: false,
         user_display_name: '',
         user_email: '',
@@ -34,6 +40,7 @@
         logout_url: ''
       };
     </script>
-    <script type="module" src="/src/wp-main.tsx"></script>
+    <link rel="stylesheet" href="/wordpress-assets/Assets/index.css" />
+    <script type="module" src="/wordpress-assets/Assets/index.js"></script>
   </body>
 </html>
