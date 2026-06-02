@@ -1,10 +1,11 @@
 import { useState } from 'react';
-import { MessageCircle, Trophy, User, Gift, Globe, ChevronDown, Search, Plus, X, LogOut, Sun, Moon, Sparkles } from 'lucide-react';
+import { MessageCircle, Trophy, User, Gift, Globe, ChevronDown, Search, Plus, X, LogOut, Sun, Moon, Sparkles, Brain } from 'lucide-react';
 import { Conversation, Persona } from '@/lib/types';
 import { ConversationFolders } from './ConversationFolders';
 import { useTheme } from '@/hooks/useTheme';
+import { ProjectsSection } from './ProjectsSection';
 
-export type SidebarView = 'chat' | 'leaderboard' | 'profile' | 'refer' | 'personas';
+export type SidebarView = 'chat' | 'leaderboard' | 'profile' | 'refer' | 'personas' | 'memories';
 
 interface ChatSidebarProps {
   conversations: Conversation[];
@@ -21,6 +22,7 @@ interface ChatSidebarProps {
   userInitial?: string;
   avatarUrl?: string;
   onSignOut?: () => void;
+  isLoggedIn?: boolean;
 }
 
 const navItems = [
@@ -29,6 +31,7 @@ const navItems = [
   { icon: Trophy, label: 'Leaderboard', badge: 'BETA', action: 'leaderboard' },
   { icon: User, label: 'Profile', action: 'profile' },
   { icon: Gift, label: 'Refer for rewards', action: 'refer' },
+  { icon: Brain, label: 'Memories', action: 'memories' },
   { icon: Globe, label: 'Contact us', expandable: true, action: 'findus' },
 ];
 
@@ -46,6 +49,7 @@ export function ChatSidebar({
   userInitial = 'U',
   avatarUrl,
   onSignOut,
+  isLoggedIn = true,
 }: ChatSidebarProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [findUsOpen, setFindUsOpen] = useState(false);
@@ -87,7 +91,7 @@ export function ChatSidebar({
           ${isOpen ? 'translate-x-0' : '-translate-x-full'}
         `}
       >
-        <div className="flex items-center justify-end px-5 pt-5 pb-3">
+        <div className="flex items-center justify-end px-3 pt-3 pb-2 border-b border-sidebar-border/70">
           <button
             onClick={onClose}
             className="p-1.5 rounded-md hover:bg-sidebar-accent transition-colors lg:hidden"
@@ -96,7 +100,7 @@ export function ChatSidebar({
           </button>
         </div>
 
-        <nav className="px-3 space-y-0.5">
+        <nav className="px-3 pt-2 space-y-0.5">
           {navItems.map((item) => (
             <button
               key={item.label}
@@ -121,16 +125,16 @@ export function ChatSidebar({
             </button>
           ))}
           {findUsOpen && (
-            <div className="pl-10 space-y-1 py-1">
-              <a href="https://wa.me/12262272288" target="_blank" rel="noopener noreferrer" className="block px-3 py-1.5 text-sm text-sidebar-foreground hover:text-sidebar-accent-foreground hover:bg-sidebar-accent/50 rounded-lg transition-colors">💬 WhatsApp</a>
-              <a href="https://twitter.com" target="_blank" rel="noopener noreferrer" className="block px-3 py-1.5 text-sm text-sidebar-foreground hover:text-sidebar-accent-foreground hover:bg-sidebar-accent/50 rounded-lg transition-colors">Twitter</a>
-              <a href="https://discord.com" target="_blank" rel="noopener noreferrer" className="block px-3 py-1.5 text-sm text-sidebar-foreground hover:text-sidebar-accent-foreground hover:bg-sidebar-accent/50 rounded-lg transition-colors">Discord</a>
+            <div className="pl-10 space-y-1 py-1 text-sm text-sidebar-foreground">
+              <a href="https://wa.me/12262272288" target="_blank" rel="noopener noreferrer" className="block px-3 py-1.5 hover:text-sidebar-accent-foreground hover:bg-sidebar-accent/50 rounded-lg transition-colors">+1 (226) 227-2288 (WhatsApp)</a>
             </div>
           )}
         </nav>
 
+        <ProjectsSection />
+
         {/* Search */}
-        <div className="px-3 mt-4">
+        <div className="px-3 mt-3">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
             <input
@@ -157,15 +161,6 @@ export function ChatSidebar({
 
         {/* Conversations */}
         <div className="flex-1 overflow-y-auto px-3 mt-2 space-y-1">
-          <button
-            onClick={onNewConversation}
-            className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm
-                       text-primary hover:bg-primary/10 transition-colors font-medium"
-          >
-            <Plus className="w-4 h-4" />
-            New conversation
-          </button>
-
           {filtered.map((conv) => (
             <button
               key={conv.id}
@@ -186,7 +181,14 @@ export function ChatSidebar({
 
         {/* User */}
         <div className="p-3 border-t border-sidebar-border space-y-2">
-          <div className="flex items-center justify-between px-3">
+          <button
+            onClick={onNewConversation}
+            className="w-full flex items-center justify-center gap-2 px-3 py-3 rounded-xl text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+          >
+            <Plus className="w-4 h-4" />
+            New conversation
+          </button>
+          <div className="flex items-center justify-between px-2">
             <button
               onClick={toggleTheme}
               className="p-1.5 rounded-md hover:bg-sidebar-accent transition-colors"
@@ -195,7 +197,7 @@ export function ChatSidebar({
               {theme === 'dark' ? <Sun className="w-4 h-4 text-muted-foreground" /> : <Moon className="w-4 h-4 text-muted-foreground" />}
             </button>
           </div>
-          <div className="flex items-center gap-3 px-3 py-2">
+          <div className="flex items-center gap-3 px-3 py-2 rounded-xl bg-sidebar-accent/60">
             {avatarUrl ? (
               <img src={avatarUrl} alt={userName} className="w-8 h-8 rounded-full object-cover shrink-0" />
             ) : (
@@ -204,7 +206,7 @@ export function ChatSidebar({
               </div>
             )}
             <span className="text-sm font-medium text-foreground flex-1 truncate">{userName}</span>
-            {onSignOut && (
+            {onSignOut && isLoggedIn && (
               <button onClick={onSignOut} className="p-1.5 rounded-md hover:bg-sidebar-accent transition-colors" title="Sign out">
                 <LogOut className="w-3.5 h-3.5 text-muted-foreground" />
               </button>
