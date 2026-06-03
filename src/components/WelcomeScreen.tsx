@@ -6,10 +6,10 @@ interface WelcomeScreenProps {
 }
 
 const categories = [
-  { icon: Pencil, label: 'Write', color: 'bg-blue-500/10 text-blue-400 border-blue-500/20' },
-  { icon: Lightbulb, label: 'Plan', color: 'bg-amber-500/10 text-amber-400 border-amber-500/20' },
-  { icon: Search, label: 'Research', color: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' },
-  { icon: BookOpen, label: 'Learn', color: 'bg-purple-500/10 text-purple-400 border-purple-500/20' },
+  { icon: Pencil, label: 'Write' },
+  { icon: Lightbulb, label: 'Plan' },
+  { icon: Search, label: 'Research' },
+  { icon: BookOpen, label: 'Learn' },
 ];
 
 const suggestions: Record<string, string[]> = {
@@ -42,11 +42,11 @@ export function WelcomeScreen({ personaName, onSendSuggestion }: WelcomeScreenPr
         className="text-center space-y-4"
         style={{ animation: 'fade-up 0.6s cubic-bezier(0.16,1,0.3,1) 0.1s both' }}
       >
-        <h1 className="text-3xl sm:text-4xl font-bold tracking-widest uppercase text-primary">
-          VERSACE22 ai
+        <h1 className="text-[56px] leading-none sm:text-[72px] font-extrabold uppercase text-primary">
+          VERSACE22 AI
         </h1>
         <h2
-          className="text-lg sm:text-xl font-semibold text-foreground tracking-tight leading-tight"
+          className="text-[28px] sm:text-[38px] font-extrabold text-foreground leading-[1.05]"
           style={{ textWrap: 'balance' } as React.CSSProperties}
         >
           World's smartest AIs,
@@ -57,16 +57,16 @@ export function WelcomeScreen({ personaName, onSendSuggestion }: WelcomeScreenPr
 
       {/* Category chips */}
       <div
-        className="mt-8 flex flex-wrap justify-center gap-2"
+        className="mt-8 flex flex-wrap justify-center gap-3"
         style={{ animation: 'fade-up 0.6s cubic-bezier(0.16,1,0.3,1) 0.2s both' }}
       >
         {categories.map((cat) => (
           <button
             key={cat.label}
             onClick={() => onSendSuggestion(suggestions[cat.label][0])}
-            className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium
-                       border transition-all duration-200 active:scale-[0.97]
-                       hover:brightness-110 ${cat.color}`}
+            className="flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-medium
+                       border border-border bg-secondary/70 text-foreground transition-all duration-200
+                       hover:bg-secondary active:scale-[0.97]"
           >
             <cat.icon className="w-4 h-4" />
             {cat.label}
@@ -76,14 +76,14 @@ export function WelcomeScreen({ personaName, onSendSuggestion }: WelcomeScreenPr
 
       {/* Suggestion prompts */}
       <div
-        className="mt-4 flex flex-wrap justify-center gap-2 max-w-lg"
+        className="mt-4 flex flex-wrap justify-center gap-3 max-w-3xl"
         style={{ animation: 'fade-up 0.6s cubic-bezier(0.16,1,0.3,1) 0.35s both' }}
       >
         {['What can you help me with today?', 'Tell me about your expertise', 'Help me brainstorm an idea'].map((s) => (
           <button
             key={s}
             onClick={() => onSendSuggestion(s)}
-            className="px-4 py-2 rounded-full text-sm bg-secondary text-secondary-foreground
+            className="px-5 py-3 rounded-full text-sm bg-secondary/70 text-secondary-foreground
                        border border-border hover:bg-muted hover:border-primary/20
                        transition-all duration-200 active:scale-[0.97]"
           >

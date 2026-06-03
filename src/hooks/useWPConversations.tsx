@@ -4,6 +4,7 @@ import {
   loadConversationFromWP,
   deleteConversationFromWP,
   WPConversation,
+  parseArtifactsFromContent,
 } from '@/lib/wp-api';
 import { Message, Conversation } from '@/lib/types';
 
@@ -53,6 +54,7 @@ export function useWPConversations() {
         role: m.role as 'user' | 'assistant',
         content: m.content,
         timestamp: new Date(),
+        artifacts: m.role === 'assistant' ? parseArtifactsFromContent(m.content) : [],
       }));
     } catch (err) {
       console.error('Failed to load WP conversation:', err);

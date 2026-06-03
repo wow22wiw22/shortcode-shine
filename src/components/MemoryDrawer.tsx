@@ -47,28 +47,41 @@ export function MemoryDrawer({ open, onClose }: MemoryDrawerProps) {
     } catch (e: any) { toast.error(e.message); }
   };
 
+  const canManage = userId > 0;
+
   return (
     <aside className="fixed top-0 right-0 z-50 h-dvh w-full sm:w-[340px] bg-card border-l border-border flex flex-col shadow-2xl animate-in slide-in-from-right duration-200">
-      <header className="flex items-center justify-between px-4 py-3 border-b border-border shrink-0">
+      <header className="flex items-center justify-between px-4 py-4 border-b border-border shrink-0">
         <h3 className="text-sm font-semibold text-foreground">🧠 Memories</h3>
         <button onClick={onClose} className="p-2 rounded-md hover:bg-muted"><X className="w-4 h-4" /></button>
       </header>
 
       <div className="p-3 border-b border-border shrink-0 space-y-2">
+        <div className="flex items-center gap-2">
+          <input
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            placeholder="e.g. I prefer Python"
+            className="flex-1 h-10 text-sm bg-muted/40 border border-border rounded-xl px-3 py-2 focus:outline-none focus:border-primary/40"
+          />
+          <button
+            onClick={add}
+            disabled={!draft.trim() || !canManage}
+            className="h-10 px-4 rounded-xl bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 disabled:opacity-50"
+          >
+            + Add
+          </button>
+        </div>
+        {!canManage && (
+          <p className="text-xs text-muted-foreground">Sign in to save memories.</p>
+        )}
         <textarea
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
           placeholder="e.g. The user prefers concise answers in Turkish."
           rows={3}
-          className="w-full text-sm bg-muted/40 border border-border rounded-md px-3 py-2 focus:outline-none focus:border-primary/40"
+          className="hidden"
         />
-        <button
-          onClick={add}
-          disabled={!draft.trim()}
-          className="w-full flex items-center justify-center gap-2 bg-primary text-primary-foreground rounded-md py-2 text-sm font-medium hover:bg-primary/90 disabled:opacity-50"
-        >
-          <Plus className="w-4 h-4" /> Add memory
-        </button>
       </div>
 
       <div className="flex-1 overflow-y-auto p-3 space-y-2">

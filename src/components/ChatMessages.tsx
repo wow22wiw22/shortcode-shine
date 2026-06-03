@@ -3,6 +3,8 @@ import { Copy, Check, RefreshCw, ExternalLink } from 'lucide-react';
 import { Message } from '@/lib/types';
 import { MarkdownMessage } from './MarkdownMessage';
 import { StreamingMessage } from './StreamingMessage';
+import { ArtifactCard } from './ArtifactCard';
+import { ParsedArtifact } from '@/lib/wp-api';
 import { toast } from 'sonner';
 
 interface ChatMessagesProps {
@@ -10,6 +12,7 @@ interface ChatMessagesProps {
   isTyping?: boolean;
   streamingMessageId?: string | null;
   onRegenerate?: (messageIndex: number) => void;
+  onOpenArtifact?: (artifact: ParsedArtifact) => void;
 }
 
 function CopyButton({ text }: { text: string }) {
@@ -66,7 +69,7 @@ function CitationLinks({ content }: { content: string }) {
   );
 }
 
-export function ChatMessages({ messages, isTyping, streamingMessageId, onRegenerate }: ChatMessagesProps) {
+export function ChatMessages({ messages, isTyping, streamingMessageId, onRegenerate, onOpenArtifact }: ChatMessagesProps) {
   if (messages.length === 0 && !isTyping) return null;
 
   return (
@@ -122,6 +125,23 @@ export function ChatMessages({ messages, isTyping, streamingMessageId, onRegener
                     <RefreshCw className="w-3.5 h-3.5" />
                   </button>
                 )}
+              </div>
+            )}
+
+            {!!msg.artifacts?.length && onOpenArtifact && (
+              <div className="mt-2 space-y-2">
+                {msg.artifacts.map((artifact, artifactIndex) => (
+                  <ArtifactCard
+                    key={artifact.id ?? `${msg.id}-artifact-${artifactIndex}`}
+                    artifact={artifact}
+                    onOpen={() => onOpenArtifact({
+                      id: typeof artifact.id === 'number' ? artifact.id : artifactIndex + 1,
+                      type: artifact.type,
+                      title: artifact.title,
+                      content: artifact.content,
+                    })}
+                  />
+                ))}
               </div>
             )}
           </div>

@@ -1,8 +1,9 @@
 import { FileCode2 } from 'lucide-react';
 import { ParsedArtifact } from '@/lib/wp-api';
+import { ArtifactData } from '@/lib/types';
 
 interface ArtifactCardProps {
-  artifact: ParsedArtifact;
+  artifact: ParsedArtifact | ArtifactData;
   onOpen: () => void;
 }
 
