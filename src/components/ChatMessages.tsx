@@ -134,7 +134,12 @@ export function ChatMessages({ messages, isTyping, streamingMessageId, onRegener
                   <ArtifactCard
                     key={artifact.id ?? `${msg.id}-artifact-${artifactIndex}`}
                     artifact={artifact}
-                    onOpen={() => onOpenArtifact(artifact as ParsedArtifact)}
+                    onOpen={() => onOpenArtifact({
+                      id: typeof artifact.id === 'number' ? artifact.id : artifactIndex + 1,
+                      type: artifact.type,
+                      title: artifact.title,
+                      content: artifact.content,
+                    })}
                   />
                 ))}
               </div>
