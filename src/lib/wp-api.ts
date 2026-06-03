@@ -259,6 +259,10 @@ function extractArtifacts(content: string): ParsedArtifact[] {
   return artifacts;
 }
 
+export function parseArtifactsFromContent(content: string): ParsedArtifact[] {
+  return extractArtifacts(content);
+}
+
 async function wpFetch(action: string, fields: Record<string, string | Blob | number>, useAdminNonce = false) {
   const config = getWPConfig();
   if (!config) throw new Error('WordPress config not available');
