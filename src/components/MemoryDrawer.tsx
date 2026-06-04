@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { X, Plus, Trash2, Power } from 'lucide-react';
 import {
   WPMemory, getMemoriesWP, addMemoryWP, updateMemoryWP, deleteMemoryWP, toggleMemoryWP,
-  getWPUserId, getWPPersonaId,
+  getWPUserId, getWPPersonaId, isWPAdmin,
 } from '@/lib/wp-api';
 import { toast } from 'sonner';
 
@@ -47,7 +47,7 @@ export function MemoryDrawer({ open, onClose }: MemoryDrawerProps) {
     } catch (e: any) { toast.error(e.message); }
   };
 
-  const canManage = userId > 0;
+  const canManage = userId > 0 && isWPAdmin();
 
   return (
     <aside className="fixed top-0 right-0 z-50 h-dvh w-full sm:w-[340px] bg-card border-l border-border flex flex-col shadow-2xl animate-in slide-in-from-right duration-200">
@@ -73,7 +73,11 @@ export function MemoryDrawer({ open, onClose }: MemoryDrawerProps) {
           </button>
         </div>
         {!canManage && (
-          <p className="text-xs text-muted-foreground">Sign in to save memories.</p>
+          <p className="text-xs text-muted-foreground">
+            {userId > 0
+              ? 'Memories require an admin account (manage_options). Sign in as the WordPress admin to add memories.'
+              : 'Sign in to WordPress to save memories.'}
+          </p>
         )}
         <textarea
           value={draft}

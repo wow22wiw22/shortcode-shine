@@ -10,6 +10,7 @@ interface WPConfig {
   sessionId: string;
   userId: number;
   isAdmin: boolean;
+  adminNonce?: string;
   loginNonce?: string;
   registerNonce?: string;
 }
@@ -183,6 +184,7 @@ function getWPConfig(): WPConfig | null {
     sessionId: w.versace22_chat.session_id || 'sess_' + crypto.randomUUID(),
     userId: parseInt(w.versace22_chat.user_id, 10) || 0,
     isAdmin: !!w.versace22_chat.is_admin,
+    adminNonce: w.versace22_chat.admin_nonce || '',
     loginNonce: w.versace22_chat.login_nonce || '',
     registerNonce: w.versace22_chat.register_nonce || '',
   };
@@ -310,7 +312,7 @@ async function wpFetch(action: string, fields: Record<string, string | Blob | nu
 
   const formData = new FormData();
   formData.append('action', action);
-  formData.append('nonce', useAdminNonce ? config.nonce : config.nonce);
+  formData.append('nonce', useAdminNonce ? (config.adminNonce || config.nonce) : config.nonce);
   for (const [key, value] of Object.entries(fields)) {
     if (value === undefined || value === null) continue;
     formData.append(key, typeof value === 'number' ? String(value) : (value as any));

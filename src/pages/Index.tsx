@@ -370,7 +370,7 @@ const Index = () => {
             )}
 
             <div className="shrink-0 pb-4 pt-2">
-              <ChatInput onSend={handleSend} disabled={isTyping} />
+              <ChatInput onSend={handleSend} disabled={isTyping} onNewChat={handleNewConversation} />
             </div>
           </>
         )}

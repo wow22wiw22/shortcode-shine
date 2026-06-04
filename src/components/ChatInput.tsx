@@ -6,9 +6,10 @@ import { uploadFileToWP, transcribeAudioWP, isWordPress } from '@/lib/wp-api';
 interface ChatInputProps {
   onSend: (message: string, attachment?: { url: string; type: string; data?: string } | null) => void;
   disabled?: boolean;
+  onNewChat?: () => void;
 }
 
-export function ChatInput({ onSend, disabled }: ChatInputProps) {
+export function ChatInput({ onSend, disabled, onNewChat }: ChatInputProps) {
   const [message, setMessage] = useState('');
   const [isPrivateMode, setIsPrivateMode] = useState(false);
   const [attachedFile, setAttachedFile] = useState<File | null>(null);
@@ -198,9 +199,21 @@ export function ChatInput({ onSend, disabled }: ChatInputProps) {
               onClick={handleAttachClick}
               disabled={isUploading}
               className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors disabled:opacity-30"
+              title="Attach file"
             >
-              <Plus className="w-4 h-4" />
+              <Paperclip className="w-4 h-4" />
             </button>
+
+            {onNewChat && (
+              <button
+                type="button"
+                onClick={onNewChat}
+                className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                title="New chat"
+              >
+                <Plus className="w-4 h-4" />
+              </button>
+            )}
 
             <button
               type="button"
