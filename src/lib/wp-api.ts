@@ -184,6 +184,7 @@ function getWPConfig(): WPConfig | null {
     sessionId: w.versace22_chat.session_id || 'sess_' + crypto.randomUUID(),
     userId: parseInt(w.versace22_chat.user_id, 10) || 0,
     isAdmin: !!w.versace22_chat.is_admin,
+    adminNonce: w.versace22_chat.admin_nonce || '',
     loginNonce: w.versace22_chat.login_nonce || '',
     registerNonce: w.versace22_chat.register_nonce || '',
   };
