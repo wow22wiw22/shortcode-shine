@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { Menu, LogOut } from 'lucide-react';
+import { Menu, LogOut, LogIn } from 'lucide-react';
 import { ChatSidebar, SidebarView } from '@/components/ChatSidebar';
 import { ChatInput } from '@/components/ChatInput';
 import { ChatMessages } from '@/components/ChatMessages';
@@ -7,6 +7,7 @@ import { WelcomeScreen } from '@/components/WelcomeScreen';
 import { PersonaGallery } from '@/components/PersonaGallery';
 import { MemoryDrawer } from '@/components/MemoryDrawer';
 import { ArtifactCanvas } from '@/components/ArtifactCanvas';
+import { WPAuthModal } from '@/components/WPAuthModal';
 import { SpecializedModesBar, SpecializedMode, SPECIALIZED_MODES } from '@/components/SpecializedModes';
 import { LeaderboardView, ProfileView, ReferView } from '@/components/SidebarViews';
 import { DEFAULT_PERSONAS, Message, Persona, MainCharacter } from '@/lib/types';
@@ -53,6 +54,7 @@ const Index = () => {
   const [sessionId, setSessionId] = useState(() => getWPSessionId() || 'sess_' + crypto.randomUUID());
   const [memoryOpen, setMemoryOpen] = useState(false);
   const [activeArtifact, setActiveArtifact] = useState<ParsedArtifact | null>(null);
+  const [wpAuthOpen, setWpAuthOpen] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Load personas from WP on mount
@@ -307,13 +309,24 @@ const Index = () => {
               onSelectMode={setActiveMode}
             />
           </div>
-          <button
-            onClick={signOut}
-            className="p-2 rounded-lg hover:bg-muted transition-colors shrink-0"
-            title="Sign out"
-          >
-            <LogOut className="w-4 h-4 text-muted-foreground" />
-          </button>
+          {wpMode && !(window as any)?.versace22_chat?.user_logged_in ? (
+            <button
+              onClick={() => setWpAuthOpen(true)}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 text-xs font-semibold shrink-0"
+              title="Sign in / Register"
+            >
+              <LogIn className="w-3.5 h-3.5" />
+              Sign in
+            </button>
+          ) : (
+            <button
+              onClick={signOut}
+              className="p-2 rounded-lg hover:bg-muted transition-colors shrink-0"
+              title="Sign out"
+            >
+              <LogOut className="w-4 h-4 text-muted-foreground" />
+            </button>
+          )}
         </header>
 
           {activeView === 'leaderboard' ? (
@@ -384,6 +397,8 @@ const Index = () => {
           />
 
           <ArtifactCanvas artifact={activeArtifact} onClose={() => setActiveArtifact(null)} />
+
+          <WPAuthModal open={wpAuthOpen} onClose={() => setWpAuthOpen(false)} />
       </main>
     </div>
   );
