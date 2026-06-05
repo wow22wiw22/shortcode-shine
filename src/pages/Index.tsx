@@ -103,6 +103,8 @@ const Index = () => {
     setCurrentMessages([]);
     setSessionId('sess_' + crypto.randomUUID());
     setSidebarOpen(false);
+    setActiveView('chat');
+    setActiveArtifact(null);
   };
 
   const handleSelectConversation = async (id: string) => {
