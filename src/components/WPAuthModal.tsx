@@ -36,16 +36,11 @@ export function WPAuthModal({ open, onClose }: WPAuthModalProps) {
     e.preventDefault();
     setLoading(true);
     try {
+      // Plugin auto-signs-in the user on successful registration (wp_set_auth_cookie).
+      // Do NOT call loginUserWP again — it triggers the login rate limiter.
       await registerUserWP({ username, email, password, display_name: displayName });
-      toast.success('Account created! Signing you in...');
-      try {
-        await loginUserWP({ login: username, password });
-        setTimeout(() => window.location.reload(), 600);
-      } catch {
-        setMode('login');
-        setLogin(username);
-        setLoading(false);
-      }
+      toast.success('Account created! Reloading...');
+      setTimeout(() => window.location.reload(), 600);
     } catch (err: any) {
       toast.error(err.message || 'Registration failed');
       setLoading(false);
@@ -136,11 +131,11 @@ export function WPAuthModal({ open, onClose }: WPAuthModalProps) {
             />
             <input
               type="password"
-              placeholder="Password (min 6)"
+              placeholder="Password (min 8 characters)"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              minLength={6}
+              minLength={8}
               className="w-full px-4 py-2.5 rounded-xl bg-background border border-border text-sm focus:border-primary focus:outline-none"
             />
             <button
