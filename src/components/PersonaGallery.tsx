@@ -1,4 +1,4 @@
-import { ArrowLeft, Sparkles, Star } from 'lucide-react';
+import { Sparkles } from 'lucide-react';
 import { Persona, MainCharacter } from '@/lib/types';
 
 interface PersonaGalleryProps {
