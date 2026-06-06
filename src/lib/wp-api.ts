@@ -136,7 +136,17 @@ let mockConversationId = 3;
 let mockMemories: WPMemory[] = [
   { id: 1, persona_id: 1, memory_text: 'User prefers exact version matching.', enabled: 1 },
 ];
-let mockRegisteredUsers: Array<MockWPUser & { username: string; password: string }> = [];
+let mockRegisteredUsers: Array<MockWPUser & { username: string; password: string }> = [
+  {
+    user_id: 1,
+    username: 'lorenzo',
+    email: 'lorenzo@example.com',
+    password: 'password123',
+    display_name: 'lorenzo',
+    avatar: '',
+    is_admin: true,
+  },
+];
 let mockProjects: WPProject[] = [
   { id: 1, name: 'Integrated v12 WP API #18', description: '', custom_instructions: '' },
 ];
