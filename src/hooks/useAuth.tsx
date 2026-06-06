@@ -55,7 +55,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         window.removeEventListener('versace22-wp-auth-changed', syncWPAuth as EventListener);
         window.removeEventListener('storage', syncWPAuth as EventListener);
       };
-      return;
     }
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
