@@ -15,6 +15,14 @@ interface WPConfig {
   registerNonce?: string;
 }
 
+interface MockWPUser {
+  user_id: number;
+  display_name: string;
+  email: string;
+  avatar: string;
+  is_admin: boolean;
+}
+
 export interface ParsedArtifact {
   id?: number;
   type: string;
@@ -128,6 +136,7 @@ let mockConversationId = 3;
 let mockMemories: WPMemory[] = [
   { id: 1, persona_id: 1, memory_text: 'User prefers exact version matching.', enabled: 1 },
 ];
+let mockRegisteredUsers: Array<MockWPUser & { username: string; password: string }> = [];
 let mockProjects: WPProject[] = [
   { id: 1, name: 'Integrated v12 WP API #18', description: '', custom_instructions: '' },
 ];
@@ -173,6 +182,18 @@ const mockModels: WPORModel[] = [
   { id: 'openrouter/auto', name: 'OpenRouter Auto', context_length: 128000 },
   { id: 'meta-llama/llama-3.1-8b-instruct:free', name: 'Llama 3.1 8B Free', context_length: 131072 },
 ];
+
+function setMockWPUser(user: MockWPUser | null) {
+  const w = window as any;
+  if (!w.versace22_chat) return;
+
+  w.versace22_chat.user_logged_in = !!user;
+  w.versace22_chat.user_id = user?.user_id || 0;
+  w.versace22_chat.user_display_name = user?.display_name || '';
+  w.versace22_chat.user_email = user?.email || '';
+  w.versace22_chat.user_avatar = user?.avatar || '';
+  w.versace22_chat.is_admin = !!user?.is_admin;
+}
 
 function getWPConfig(): WPConfig | null {
   const w = window as any;
