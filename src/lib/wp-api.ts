@@ -197,6 +197,11 @@ function setMockWPUser(user: MockWPUser | null) {
   const w = window as any;
   if (!w.versace22_chat) return;
 
+  try {
+    if (user) localStorage.setItem('versace22-mock-user', JSON.stringify(user));
+    else localStorage.removeItem('versace22-mock-user');
+  } catch {}
+
   w.versace22_chat.user_logged_in = !!user;
   w.versace22_chat.user_id = user?.user_id || 0;
   w.versace22_chat.user_display_name = user?.display_name || '';
@@ -208,6 +213,14 @@ function setMockWPUser(user: MockWPUser | null) {
 function getWPConfig(): WPConfig | null {
   const w = window as any;
   if (!w.versace22_chat) return null;
+  if (w.versace22_chat.ajaxurl?.includes('/wp-mock/')) {
+    try {
+      const stored = localStorage.getItem('versace22-mock-user');
+      if (stored) {
+        setMockWPUser(JSON.parse(stored) as MockWPUser);
+      }
+    } catch {}
+  }
   return {
     ajaxurl: w.versace22_chat.ajaxurl,
     nonce: w.versace22_chat.nonce,
