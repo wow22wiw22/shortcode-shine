@@ -531,7 +531,37 @@ export async function pinConversationWP(conversationId: number, pinned?: boolean
 export async function registerUserWP(data: { username: string; email: string; password: string; display_name?: string }): Promise<{ user_id: number; display_name: string }> {
   const config = getWPConfig();
   if (!config) throw new Error('WordPress config not available');
-  if (isMockWP(config)) return mockDelay({ user_id: 1, display_name: data.display_name || data.username });
+  if (isMockWP(config)) {
+    const normalizedUsername = data.username.trim().toLowerCase();
+    const normalizedEmail = data.email.trim().toLowerCase();
+    if (!normalizedUsername || !normalizedEmail || !data.password.trim()) {
+      throw new Error('Please complete all required fields');
+    }
+    if (data.password.trim().length < 8) {
+      throw new Error('Password must be at least 8 characters');
+    }
+    if (mockRegisteredUsers.some((user) => user.username.toLowerCase() === normalizedUsername)) {
+      throw new Error('That username is already registered');
+    }
+    if (mockRegisteredUsers.some((user) => user.email.toLowerCase() === normalizedEmail)) {
+      throw new Error('That email is already registered');
+    }
+
+    const newUser = {
+      user_id: mockRegisteredUsers.length + 1,
+      username: data.username.trim(),
+      email: data.email.trim(),
+      password: data.password,
+      display_name: data.display_name?.trim() || data.username.trim(),
+      avatar: '',
+      is_admin: mockRegisteredUsers.length === 0,
+    };
+
+    mockRegisteredUsers = [...mockRegisteredUsers, newUser];
+    setMockWPUser(newUser);
+
+    return mockDelay({ user_id: newUser.user_id, display_name: newUser.display_name });
+  }
   const formData = new FormData();
   formData.append('action', 'aicpp_register_user');
   formData.append('nonce', config.registerNonce || config.nonce);
@@ -549,7 +579,17 @@ export async function registerUserWP(data: { username: string; email: string; pa
 export async function loginUserWP(data: { login: string; password: string }): Promise<{ user_id: number; display_name: string; message: string }> {
   const config = getWPConfig();
   if (!config) throw new Error('WordPress config not available');
-  if (isMockWP(config)) return mockDelay({ user_id: 1, display_name: data.login, message: 'Signed in' });
+  if (isMockWP(config)) {
+    const login = data.login.trim().toLowerCase();
+    const user = mockRegisteredUsers.find(
+      (item) => item.username.toLowerCase() === login || item.email.toLowerCase() === login,
+    );
+    if (!user || user.password !== data.password) {
+      throw new Error('Invalid username/email or password');
+    }
+    setMockWPUser(user);
+    return mockDelay({ user_id: user.user_id, display_name: user.display_name, message: 'Signed in' });
+  }
   const formData = new FormData();
   formData.append('action', 'aicpp_login_user');
   formData.append('nonce', config.loginNonce || config.nonce);
