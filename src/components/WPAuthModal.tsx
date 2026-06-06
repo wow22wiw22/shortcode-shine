@@ -24,8 +24,9 @@ export function WPAuthModal({ open, onClose }: WPAuthModalProps) {
     setLoading(true);
     try {
       await loginUserWP({ login, password });
-      toast.success('Signed in! Reloading...');
-      setTimeout(() => window.location.reload(), 600);
+      window.dispatchEvent(new Event('versace22-wp-auth-changed'));
+      toast.success('Signed in!');
+      onClose();
     } catch (err: any) {
       toast.error(err.message || 'Login failed');
       setLoading(false);
@@ -36,11 +37,10 @@ export function WPAuthModal({ open, onClose }: WPAuthModalProps) {
     e.preventDefault();
     setLoading(true);
     try {
-      // Plugin auto-signs-in the user on successful registration (wp_set_auth_cookie).
-      // Do NOT call loginUserWP again — it triggers the login rate limiter.
       await registerUserWP({ username, email, password, display_name: displayName });
-      toast.success('Account created! Reloading...');
-      setTimeout(() => window.location.reload(), 600);
+      window.dispatchEvent(new Event('versace22-wp-auth-changed'));
+      toast.success('Account created!');
+      onClose();
     } catch (err: any) {
       toast.error(err.message || 'Registration failed');
       setLoading(false);
