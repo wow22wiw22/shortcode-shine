@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { X } from 'lucide-react';
 import { hasWPGoogleLogin, loginUserWP, registerUserWP, signInWithGoogleWP, isPreviewMock } from '@/lib/wp-api';
 import { supabase } from '@/integrations/supabase/client';
+import { lovable } from '@/integrations/lovable';
 import { toast } from 'sonner';
 
 interface WPAuthModalProps {
@@ -114,11 +115,11 @@ export function WPAuthModal({ open, onClose }: WPAuthModalProps) {
     setLoading(true);
     try {
       if (previewMock) {
-        const { error } = await supabase.auth.signInWithOAuth({
-          provider: 'google',
-          options: { redirectTo: `${window.location.origin}/` },
+        const result = await lovable.auth.signInWithOAuth('google', {
+          redirect_uri: `${window.location.origin}/`,
+          extraParams: { prompt: 'select_account' },
         });
-        if (error) throw error;
+        if (result.error) throw result.error;
         // Browser redirects to Google; modal closes on return.
       } else {
         await signInWithGoogleWP();

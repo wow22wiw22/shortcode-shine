@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
+import { lovable } from '@/integrations/lovable';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
@@ -49,6 +50,20 @@ const Auth = () => {
     }
   };
 
+  const handleGoogle = async () => {
+    setLoading(true);
+    try {
+      const result = await lovable.auth.signInWithOAuth('google', {
+        redirect_uri: window.location.origin,
+        extraParams: { prompt: 'select_account' },
+      });
+      if (result.error) throw result.error;
+    } catch (error: any) {
+      toast.error(error.message || 'Google sign-in failed');
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-dvh bg-background flex items-center justify-center p-4">
       <div
@@ -65,6 +80,12 @@ const Auth = () => {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
+          {mode !== 'forgot' && (
+            <Button type="button" variant="outline" className="w-full" disabled={loading} onClick={handleGoogle}>
+              Continue with Google
+            </Button>
+          )}
+
           {mode === 'signup' && (
             <div className="space-y-1.5">
               <label className="text-sm font-medium text-foreground">Display Name</label>

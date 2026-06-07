@@ -1,9 +1,18 @@
 import { useEffect, useState } from 'react';
 import { X, Plus, Trash2, Power } from 'lucide-react';
+import { useAuth } from '@/hooks/useAuth';
 import {
   WPMemory, getMemoriesWP, addMemoryWP, updateMemoryWP, deleteMemoryWP, toggleMemoryWP,
-  getWPUserId, getWPPersonaId, isWPAdmin,
+  getWPUserId, getWPPersonaId, isWPAdmin, isPreviewMock,
 } from '@/lib/wp-api';
+import {
+  CloudMemory,
+  listCloudMemories,
+  addCloudMemory,
+  updateCloudMemory,
+  deleteCloudMemory,
+  toggleCloudMemory,
+} from '@/lib/cloud-memories';
 import { toast } from 'sonner';
 
 interface MemoryDrawerProps {
@@ -16,12 +25,26 @@ interface MemoryDrawerProps {
  * Memory CRUD endpoints require `manage_options` + the admin nonce.
  */
 export function MemoryDrawer({ open, onClose }: MemoryDrawerProps) {
-  const [memories, setMemories] = useState<WPMemory[]>([]);
+  const { user } = useAuth();
+  const [memories, setMemories] = useState<Array<WPMemory | CloudMemory>>([]);
   const [loading, setLoading] = useState(false);
   const [draft, setDraft] = useState('');
   const userId = getWPUserId();
+  const previewMode = isPreviewMock();
 
   const refresh = async () => {
+    if (previewMode) {
+      if (!user?.id) return;
+      setLoading(true);
+      try {
+        setMemories(await listCloudMemories(user.id));
+      } catch (e: any) {
+        toast.error(e.message || 'Failed to load memories');
+      }
+      setLoading(false);
+      return;
+    }
+
     if (!userId) return;
     setLoading(true);
     try {
@@ -40,7 +63,12 @@ export function MemoryDrawer({ open, onClose }: MemoryDrawerProps) {
     const t = draft.trim();
     if (!t) return;
     try {
-      await addMemoryWP(userId, getWPPersonaId(), t);
+      if (previewMode) {
+        if (!user?.id) return;
+        await addCloudMemory(user.id, String(getWPPersonaId()), t);
+      } else {
+        await addMemoryWP(userId, getWPPersonaId(), t);
+      }
       setDraft('');
       refresh();
       toast.success('Memory saved');
@@ -48,8 +76,7 @@ export function MemoryDrawer({ open, onClose }: MemoryDrawerProps) {
   };
 
   const canManage = userId > 0 && isWPAdmin();
-  const isPreviewMock = typeof window !== 'undefined' && !!(window as any)?.versace22_chat?.ajaxurl?.includes('/wp-mock/');
-  const canUsePreviewMemories = isPreviewMock && userId > 0;
+  const canUsePreviewMemories = previewMode && !!user?.id;
   const canAdd = canManage || canUsePreviewMemories;
 
   return (
@@ -102,7 +129,14 @@ export function MemoryDrawer({ open, onClose }: MemoryDrawerProps) {
               defaultValue={m.memory_text}
               onBlur={async (e) => {
                 if (e.target.value !== m.memory_text) {
-                  try { await updateMemoryWP(m.id, e.target.value); refresh(); }
+                  try {
+                    if (previewMode) {
+                      await updateCloudMemory(String(m.id), e.target.value);
+                    } else {
+                      await updateMemoryWP(Number(m.id), e.target.value);
+                    }
+                    refresh();
+                  }
                   catch (err: any) { toast.error(err.message); }
                 }
               }}
@@ -111,14 +145,29 @@ export function MemoryDrawer({ open, onClose }: MemoryDrawerProps) {
             />
             <div className="flex justify-end gap-1 mt-1">
               <button
-                onClick={async () => { await toggleMemoryWP(m.id); refresh(); }}
+                onClick={async () => {
+                  if (previewMode) {
+                    await toggleCloudMemory(String(m.id), !m.enabled);
+                  } else {
+                    await toggleMemoryWP(Number(m.id));
+                  }
+                  refresh();
+                }}
                 title="Toggle"
                 className="p-1.5 rounded hover:bg-muted text-muted-foreground"
               >
                 <Power className="w-3.5 h-3.5" />
               </button>
               <button
-                onClick={async () => { await deleteMemoryWP(m.id); refresh(); toast.success('Deleted'); }}
+                onClick={async () => {
+                  if (previewMode) {
+                    await deleteCloudMemory(String(m.id));
+                  } else {
+                    await deleteMemoryWP(Number(m.id));
+                  }
+                  refresh();
+                  toast.success('Deleted');
+                }}
                 title="Delete"
                 className="p-1.5 rounded hover:bg-destructive/10 text-destructive"
               >

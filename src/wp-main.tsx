@@ -1,12 +1,12 @@
 /**
  * WordPress entry point — mounts into #versace22-chat-root
- * Uses MemoryRouter to avoid conflicting with WordPress URLs.
+ * Uses BrowserRouter in the Lovable preview so auth redirect routes work correctly.
  * In WP mode: uses WPAuthProvider (cookie-based WP auth) instead of Supabase auth.
  * Guest users can chat without logging in; logged-in WP users get history.
  */
 import { createRoot } from "react-dom/client";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { MemoryRouter, Route, Routes, Navigate } from "react-router-dom";
+import { BrowserRouter, Route, Routes, Navigate } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -58,13 +58,13 @@ const WPApp = () => (
           <TooltipProvider>
             <Toaster />
             <Sonner />
-            <MemoryRouter>
+            <BrowserRouter>
               <Routes>
                 <Route path="/auth" element={<AuthRoute><Auth /></AuthRoute>} />
                 <Route path="/reset-password" element={<ResetPassword />} />
                 <Route path="/" element={<WPProtectedRoute><Index /></WPProtectedRoute>} />
               </Routes>
-            </MemoryRouter>
+            </BrowserRouter>
           </TooltipProvider>
         </AuthProvider>
       </WPAuthProvider>

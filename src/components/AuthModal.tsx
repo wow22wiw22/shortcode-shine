@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { lovable } from '@/integrations/lovable';
 import { toast } from 'sonner';
 import { Mail, X, Phone } from 'lucide-react';
 
@@ -19,11 +20,11 @@ export function AuthModal({ blocking = true, onClose }: AuthModalProps) {
   const handleGoogle = async () => {
     setLoading(true);
     try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: { redirectTo: window.location.origin },
+      const result = await lovable.auth.signInWithOAuth('google', {
+        redirect_uri: window.location.origin,
+        extraParams: { prompt: 'select_account' },
       });
-      if (error) throw error;
+      if (result.error) throw result.error;
     } catch (err: any) {
       toast.error(err.message || 'Google sign-in failed');
       setLoading(false);
