@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { Menu, LogOut, LogIn } from 'lucide-react';
+import { Menu, LogOut } from 'lucide-react';
 import { ChatSidebar, SidebarView } from '@/components/ChatSidebar';
 import { ChatInput } from '@/components/ChatInput';
 import { ChatMessages } from '@/components/ChatMessages';
@@ -56,6 +56,8 @@ const Index = () => {
   const [activeArtifact, setActiveArtifact] = useState<ParsedArtifact | null>(null);
   const [wpAuthOpen, setWpAuthOpen] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const wpLoggedIn = wpMode ? !!(window as any)?.versace22_chat?.user_logged_in : !!user;
+  const requireWordPressAuth = wpMode;
 
   // Load personas from WP on mount
   useEffect(() => {
@@ -153,10 +155,21 @@ const Index = () => {
     setMemoryOpen(activeView === 'memories');
   }, [activeView]);
 
+  useEffect(() => {
+    if (requireWordPressAuth && !wpLoggedIn) {
+      setWpAuthOpen(true);
+    }
+  }, [requireWordPressAuth, wpLoggedIn]);
+
   const handleSend = async (
     text: string,
     attachment?: { url: string; type: string; data?: string } | null,
   ) => {
+    if (requireWordPressAuth && !wpLoggedIn) {
+      setWpAuthOpen(true);
+      return;
+    }
+
     const modePrefix = activeMode.systemPrefix;
     const fullText = modePrefix ? `${modePrefix}\n\n${text}` : text;
 
@@ -272,8 +285,6 @@ const Index = () => {
   const displayName = profile?.display_name || user?.email?.split('@')[0] || 'User';
   const initials = displayName.charAt(0).toUpperCase();
   const avatarUrl = profile?.avatar_url || undefined;
-  const wpLoggedIn = wpMode ? !!(window as any)?.versace22_chat?.user_logged_in : !!user;
-
   const activeChatName = isMainChatMode && mainCharacter
     ? mainCharacter.name
     : selectedPersona?.name || 'AI Assistant';
@@ -314,16 +325,7 @@ const Index = () => {
               onSelectMode={setActiveMode}
             />
           </div>
-          {wpMode && !wpLoggedIn ? (
-            <button
-              onClick={() => setWpAuthOpen(true)}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 text-xs font-semibold shrink-0"
-              title="Sign in / Register"
-            >
-              <LogIn className="w-3.5 h-3.5" />
-              Sign in
-            </button>
-          ) : (
+          {wpMode && wpLoggedIn ? (
             <button
               onClick={signOut}
               className="p-2 rounded-lg hover:bg-muted transition-colors shrink-0"
@@ -331,7 +333,7 @@ const Index = () => {
             >
               <LogOut className="w-4 h-4 text-muted-foreground" />
             </button>
-          )}
+          ) : null}
         </header>
 
           {activeView === 'leaderboard' ? (
@@ -387,8 +389,8 @@ const Index = () => {
               </div>
             )}
 
-            <div className="shrink-0 pb-4 pt-2">
-              <ChatInput onSend={handleSend} disabled={isTyping} onNewChat={handleNewConversation} />
+             <div className="shrink-0 pb-4 pt-2">
+               <ChatInput onSend={handleSend} disabled={isTyping} onNewChat={handleNewConversation} requireAuth={requireWordPressAuth && !wpLoggedIn} onRequireAuth={() => setWpAuthOpen(true)} />
             </div>
           </>
         )}

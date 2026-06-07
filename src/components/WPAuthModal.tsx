@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { X } from 'lucide-react';
-import { loginUserWP, registerUserWP } from '@/lib/wp-api';
+import { hasWPGoogleLogin, loginUserWP, registerUserWP, signInWithGoogleWP } from '@/lib/wp-api';
 import { toast } from 'sonner';
 
 interface WPAuthModalProps {
@@ -16,8 +16,18 @@ export function WPAuthModal({ open, onClose }: WPAuthModalProps) {
   const [displayName, setDisplayName] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const googleEnabled = hasWPGoogleLogin();
 
   if (!open) return null;
+
+  const resetState = () => {
+    setLoading(false);
+    setLogin('');
+    setEmail('');
+    setUsername('');
+    setDisplayName('');
+    setPassword('');
+  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -26,6 +36,7 @@ export function WPAuthModal({ open, onClose }: WPAuthModalProps) {
       await loginUserWP({ login, password });
       window.dispatchEvent(new Event('versace22-wp-auth-changed'));
       toast.success('Signed in!');
+      resetState();
       onClose();
     } catch (err: any) {
       toast.error(err.message || 'Login failed');
@@ -40,6 +51,7 @@ export function WPAuthModal({ open, onClose }: WPAuthModalProps) {
       await registerUserWP({ username, email, password, display_name: displayName });
       window.dispatchEvent(new Event('versace22-wp-auth-changed'));
       toast.success('Account created!');
+      resetState();
       onClose();
     } catch (err: any) {
       toast.error(err.message || 'Registration failed');
@@ -47,9 +59,24 @@ export function WPAuthModal({ open, onClose }: WPAuthModalProps) {
     }
   };
 
+  const handleGoogle = async () => {
+    setLoading(true);
+    try {
+      await signInWithGoogleWP();
+      window.dispatchEvent(new Event('versace22-wp-auth-changed'));
+      if (googleEnabled) {
+        resetState();
+        onClose();
+      }
+    } catch (err: any) {
+      toast.error(err.message || 'Google sign-in failed');
+      setLoading(false);
+    }
+  };
+
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-      <div className="relative w-full max-w-sm bg-card border border-border rounded-[22px] p-6 space-y-4 shadow-2xl">
+    <div className="fixed inset-0 z-[80] flex items-center justify-center p-4 bg-black/70 backdrop-blur-md">
+      <div className="relative w-full max-w-sm bg-card/95 border border-border rounded-[22px] p-6 space-y-4 shadow-2xl">
         <button
           onClick={onClose}
           className="absolute right-3 top-3 p-1.5 rounded-full text-muted-foreground hover:text-foreground hover:bg-muted"
@@ -85,7 +112,7 @@ export function WPAuthModal({ open, onClose }: WPAuthModalProps) {
           <form onSubmit={handleLogin} className="space-y-3">
             <input
               type="text"
-              placeholder="Email"
+              placeholder="Email or username"
               value={login}
               onChange={(e) => setLogin(e.target.value)}
               required
@@ -93,10 +120,11 @@ export function WPAuthModal({ open, onClose }: WPAuthModalProps) {
             />
             <input
               type="password"
-              placeholder="At least 6 characters"
+              placeholder="Password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
+              minLength={8}
               className="w-full px-4 py-2.5 rounded-xl bg-background border border-border text-sm focus:border-primary focus:outline-none"
             />
             <button
@@ -108,9 +136,11 @@ export function WPAuthModal({ open, onClose }: WPAuthModalProps) {
             </button>
             <button
               type="button"
+              onClick={handleGoogle}
+              disabled={loading || !googleEnabled}
               className="w-full py-2.5 rounded-xl bg-muted text-foreground hover:bg-secondary text-sm font-medium"
             >
-              Continue with Google
+              {googleEnabled ? 'Continue with Google' : 'Google sign-in unavailable'}
             </button>
           </form>
         ) : (

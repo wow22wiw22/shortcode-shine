@@ -13,14 +13,34 @@ interface WPConfig {
   adminNonce?: string;
   loginNonce?: string;
   registerNonce?: string;
+  googleLoginUrl?: string;
 }
 
 interface MockWPUser {
   user_id: number;
+  username: string;
   display_name: string;
   email: string;
   avatar: string;
   is_admin: boolean;
+}
+
+interface MockWPMemoryStoreItem extends WPMemory {
+  user_id: number;
+}
+
+interface MockWPConversationStoreItem extends WPConversation {
+  messages: WPMessage[];
+  session_id: string;
+  user_id: number;
+}
+
+interface MockWPStore {
+  users: Array<MockWPUser & { password: string }>;
+  memories: MockWPMemoryStoreItem[];
+  projects: WPProject[];
+  conversations: MockWPConversationStoreItem[];
+  conversationId: number;
 }
 
 export interface ParsedArtifact {
@@ -132,11 +152,12 @@ const mockMainCharacter: WPMainCharacter = {
   model: 'gpt-4',
 };
 
-let mockConversationId = 3;
-let mockMemories: WPMemory[] = [
-  { id: 1, persona_id: 1, memory_text: 'User prefers exact version matching.', enabled: 1 },
-];
-let mockRegisteredUsers: Array<MockWPUser & { username: string; password: string }> = [
+const DEFAULT_MOCK_STORE: MockWPStore = {
+  conversationId: 3,
+  memories: [
+    { id: 1, user_id: 1, persona_id: 1, memory_text: 'User prefers exact version matching.', enabled: 1 },
+  ],
+  users: [
   {
     user_id: 1,
     username: 'lorenzo',
@@ -146,11 +167,11 @@ let mockRegisteredUsers: Array<MockWPUser & { username: string; password: string
     avatar: '',
     is_admin: true,
   },
-];
-let mockProjects: WPProject[] = [
-  { id: 1, name: 'Integrated v12 WP API #18', description: '', custom_instructions: '' },
-];
-let mockConversations: Array<WPConversation & { messages: WPMessage[]; session_id: string }> = [
+  ],
+  projects: [
+    { id: 1, name: 'Integrated v12 WP API #18', description: '', custom_instructions: '' },
+  ],
+  conversations: [
   {
     id: 1,
     title: 'Welcome to v12',
@@ -164,6 +185,7 @@ let mockConversations: Array<WPConversation & { messages: WPMessage[]; session_i
     updated_at: new Date().toISOString(),
     pinned: 0,
     session_id: 'sess_lovable_preview',
+    user_id: 0,
     messages: [
       { role: 'assistant', content: 'This Lovable preview is showing the Integrate v12 WP API #18 interface.' },
     ],
@@ -181,17 +203,49 @@ let mockConversations: Array<WPConversation & { messages: WPMessage[]; session_i
     updated_at: new Date().toISOString(),
     pinned: 1,
     session_id: 'sess_lovable_preview',
+    user_id: 0,
     messages: [
       { role: 'user', content: 'Show me the v12 interface.' },
       { role: 'assistant', content: 'You are looking at the v12 WordPress interface preview.' },
     ],
   },
-];
+  ],
+};
 
 const mockModels: WPORModel[] = [
   { id: 'openrouter/auto', name: 'OpenRouter Auto', context_length: 128000 },
   { id: 'meta-llama/llama-3.1-8b-instruct:free', name: 'Llama 3.1 8B Free', context_length: 131072 },
 ];
+
+function cloneMockStore(): MockWPStore {
+  return JSON.parse(JSON.stringify(DEFAULT_MOCK_STORE));
+}
+
+function getMockStore(): MockWPStore {
+  if (typeof window === 'undefined') return cloneMockStore();
+  const w = window as any;
+  if (w.__versace22MockStore) return w.__versace22MockStore as MockWPStore;
+
+  try {
+    const stored = localStorage.getItem('versace22-mock-store');
+    if (stored) {
+      w.__versace22MockStore = JSON.parse(stored) as MockWPStore;
+      return w.__versace22MockStore;
+    }
+  } catch {}
+
+  w.__versace22MockStore = cloneMockStore();
+  return w.__versace22MockStore;
+}
+
+function saveMockStore(store: MockWPStore) {
+  if (typeof window === 'undefined') return;
+  const w = window as any;
+  w.__versace22MockStore = store;
+  try {
+    localStorage.setItem('versace22-mock-store', JSON.stringify(store));
+  } catch {}
+}
 
 function setMockWPUser(user: MockWPUser | null) {
   const w = window as any;
@@ -231,6 +285,7 @@ function getWPConfig(): WPConfig | null {
     adminNonce: w.versace22_chat.admin_nonce || '',
     loginNonce: w.versace22_chat.login_nonce || '',
     registerNonce: w.versace22_chat.register_nonce || '',
+    googleLoginUrl: w.versace22_chat.google_login_url || '',
   };
 }
 
@@ -247,13 +302,18 @@ function getConversationTitle(message: string): string {
   return text.slice(0, 40) + (text.length > 40 ? '...' : '');
 }
 
-function ensureMockConversation(sessionId: string, personaId: number | null, isMainChat: boolean, seedTitle: string) {
-  let conversation = mockConversations.find(
-    (item) => item.session_id === sessionId && item.is_main_chat === (isMainChat ? 1 : 0) && item.persona_id === personaId,
+function ensureMockConversation(sessionId: string, personaId: number | null, isMainChat: boolean, seedTitle: string, userId: number) {
+  const store = getMockStore();
+  let conversation = store.conversations.find(
+    (item) =>
+      item.session_id === sessionId &&
+      item.user_id === userId &&
+      item.is_main_chat === (isMainChat ? 1 : 0) &&
+      item.persona_id === personaId,
   );
   if (!conversation) {
     conversation = {
-      id: ++mockConversationId,
+      id: ++store.conversationId,
       title: getConversationTitle(seedTitle),
       token_count: 0,
       persona_id: personaId,
@@ -265,9 +325,11 @@ function ensureMockConversation(sessionId: string, personaId: number | null, isM
       updated_at: new Date().toISOString(),
       pinned: 0,
       session_id: sessionId,
+      user_id: userId,
       messages: [],
     };
-    mockConversations = [conversation, ...mockConversations];
+    store.conversations = [conversation, ...store.conversations];
+    saveMockStore(store);
   }
   return conversation;
 }
@@ -319,35 +381,60 @@ async function wpFetch(action: string, fields: Record<string, string | Blob | nu
       case 'aicpp_or_refresh_free':
         return mockDelay({ models: mockModels });
       case 'aicpp_get_projects':
-        return mockDelay({ projects: mockProjects });
+        return mockDelay({ projects: getMockStore().projects });
       case 'aicpp_create_project': {
-        const id = (mockProjects.at(-1)?.id || 0) + 1;
-        mockProjects = [...mockProjects, { id, name: String(fields.name || 'Project'), description: '', custom_instructions: '' }];
+        const store = getMockStore();
+        const id = (store.projects.at(-1)?.id || 0) + 1;
+        store.projects = [...store.projects, { id, name: String(fields.name || 'Project'), description: '', custom_instructions: '' }];
+        saveMockStore(store);
         return mockDelay({ id });
       }
       case 'aicpp_delete_project':
-        mockProjects = mockProjects.filter((p) => p.id !== Number(fields.project_id));
+        {
+          const store = getMockStore();
+          store.projects = store.projects.filter((p) => p.id !== Number(fields.project_id));
+          saveMockStore(store);
+        }
         return mockDelay({ ok: true });
       case 'aicpp_get_memories':
-        return mockDelay({ memories: mockMemories });
+        return mockDelay({ memories: getMockStore().memories.filter((m) => m.user_id === Number(fields.user_id || 0)) });
       case 'aicpp_add_memory': {
-        const id = (mockMemories.at(-1)?.id || 0) + 1;
-        mockMemories = [...mockMemories, { id, persona_id: Number(fields.persona_id || 1), memory_text: String(fields.memory_text || ''), enabled: 1 }];
+        const store = getMockStore();
+        const id = (store.memories.at(-1)?.id || 0) + 1;
+        store.memories = [
+          ...store.memories,
+          { id, user_id: Number(fields.user_id || 0), persona_id: Number(fields.persona_id || 1), memory_text: String(fields.memory_text || ''), enabled: 1 },
+        ];
+        saveMockStore(store);
         return mockDelay({ id });
       }
       case 'aicpp_update_memory':
-        mockMemories = mockMemories.map((m) => (m.id === Number(fields.memory_id) ? { ...m, memory_text: String(fields.memory_text || '') } : m));
+        {
+          const store = getMockStore();
+          store.memories = store.memories.map((m) => (m.id === Number(fields.memory_id) ? { ...m, memory_text: String(fields.memory_text || '') } : m));
+          saveMockStore(store);
+        }
         return mockDelay({ ok: true });
       case 'aicpp_delete_memory':
-        mockMemories = mockMemories.filter((m) => m.id !== Number(fields.memory_id));
+        {
+          const store = getMockStore();
+          store.memories = store.memories.filter((m) => m.id !== Number(fields.memory_id));
+          saveMockStore(store);
+        }
         return mockDelay({ ok: true });
       case 'aicpp_toggle_memory':
-        mockMemories = mockMemories.map((m) => (m.id === Number(fields.memory_id) ? { ...m, enabled: m.enabled ? 0 : 1 } : m));
+        {
+          const store = getMockStore();
+          store.memories = store.memories.map((m) => (m.id === Number(fields.memory_id) ? { ...m, enabled: m.enabled ? 0 : 1 } : m));
+          saveMockStore(store);
+        }
         return mockDelay({ ok: true });
       case 'aicpp_pin_conversation': {
+        const store = getMockStore();
         const id = Number(fields.conversation_id);
-        mockConversations = mockConversations.map((c) => (c.id === id ? { ...c, pinned: Number(fields.pinned ?? (c.pinned ? 0 : 1)) } : c));
-        return mockDelay({ conversation_id: id, pinned: mockConversations.find((c) => c.id === id)?.pinned || 0 });
+        store.conversations = store.conversations.map((c) => (c.id === id ? { ...c, pinned: Number(fields.pinned ?? (c.pinned ? 0 : 1)) } : c));
+        saveMockStore(store);
+        return mockDelay({ conversation_id: id, pinned: store.conversations.find((c) => c.id === id)?.pinned || 0 });
       }
       default:
         if (useAdminNonce) return mockDelay({ ok: true });
@@ -389,6 +476,48 @@ export function getWPUserId(): number {
   return getWPConfig()?.userId ?? 0;
 }
 
+export function isWPPreviewMock(): boolean {
+  return isMockWP(getWPConfig());
+}
+
+export function hasWPGoogleLogin(): boolean {
+  const config = getWPConfig();
+  return !!config && (isMockWP(config) || !!config.googleLoginUrl);
+}
+
+export async function signInWithGoogleWP(): Promise<void> {
+  const config = getWPConfig();
+  if (!config) throw new Error('WordPress config not available');
+
+  if (isMockWP(config)) {
+    const store = getMockStore();
+    let googleUser = store.users.find((user) => user.email.toLowerCase() === 'google.user@example.com');
+
+    if (!googleUser) {
+      googleUser = {
+        user_id: store.users.length + 1,
+        username: 'google.user',
+        email: 'google.user@example.com',
+        password: '__google_oauth__',
+        display_name: 'Google User',
+        avatar: '',
+        is_admin: false,
+      };
+      store.users = [...store.users, googleUser];
+      saveMockStore(store);
+    }
+
+    setMockWPUser(googleUser);
+    return mockDelay(undefined);
+  }
+
+  if (!config.googleLoginUrl) {
+    throw new Error('Google sign-in is not configured in WordPress yet');
+  }
+
+  window.location.href = config.googleLoginUrl;
+}
+
 export async function sendMessageToWP(
   message: string,
   attachment?: { url: string; type: string; data?: string } | null,
@@ -405,12 +534,13 @@ export async function sendMainChatToWP(
   const config = getWPConfig();
   if (!config) throw new Error('WordPress config not available');
   if (isMockWP(config)) {
-    const conversation = ensureMockConversation(sessionId, null, true, message);
+    const conversation = ensureMockConversation(sessionId, null, true, message, config.userId || 0);
     conversation.messages.push({ role: 'user', content: message });
     const reply = buildMockReply(message, mockMainCharacter.name);
     conversation.messages.push({ role: 'assistant', content: reply });
     conversation.updated_at = new Date().toISOString();
     conversation.token_count += message.length + reply.length;
+    saveMockStore(getMockStore());
     return mockDelay({ message: reply, conversation_id: conversation.id, artifacts: extractArtifacts(reply) });
   }
 
@@ -436,12 +566,13 @@ export async function sendPersonaChatToWP(
   if (!config) throw new Error('WordPress config not available');
   if (isMockWP(config)) {
     const persona = mockPersonas.find((item) => item.id === personaId) || mockPersonas[0];
-    const conversation = ensureMockConversation(sessionId, persona.id, false, message);
+    const conversation = ensureMockConversation(sessionId, persona.id, false, message, config.userId || 0);
     conversation.messages.push({ role: 'user', content: message });
     const reply = buildMockReply(message, persona.name);
     conversation.messages.push({ role: 'assistant', content: reply });
     conversation.updated_at = new Date().toISOString();
     conversation.token_count += message.length + reply.length;
+    saveMockStore(getMockStore());
     return mockDelay({ message: reply, conversation_id: conversation.id, artifacts: extractArtifacts(reply) });
   }
 
@@ -500,7 +631,10 @@ export async function getConversationsFromWP(): Promise<WPConversation[]> {
   if (!config) return [];
   if (isMockWP(config)) {
     return mockDelay(
-      mockConversations.map(({ messages, session_id, ...conversation }) => ({ ...conversation })).sort(
+      getMockStore().conversations
+        .filter((item) => item.user_id === config.userId || item.user_id === 0)
+        .map(({ messages, session_id, user_id, ...conversation }) => ({ ...conversation }))
+        .sort(
         (a, b) => +new Date(b.updated_at) - +new Date(a.updated_at),
       ),
     );
@@ -513,7 +647,7 @@ export async function loadConversationFromWP(conversationId: number): Promise<{ 
   const config = getWPConfig();
   if (!config) return null;
   if (isMockWP(config)) {
-    const conversation = mockConversations.find((item) => item.id === conversationId);
+    const conversation = getMockStore().conversations.find((item) => item.id === conversationId && (item.user_id === config.userId || item.user_id === 0));
     return mockDelay(
       conversation
         ? {
@@ -536,7 +670,9 @@ export async function deleteConversationFromWP(conversationId: number): Promise<
   const config = getWPConfig();
   if (!config) return false;
   if (isMockWP(config)) {
-    mockConversations = mockConversations.filter((item) => item.id !== conversationId);
+    const store = getMockStore();
+    store.conversations = store.conversations.filter((item) => item.id !== conversationId);
+    saveMockStore(store);
     return mockDelay(true);
   }
   try {
@@ -555,6 +691,7 @@ export async function registerUserWP(data: { username: string; email: string; pa
   const config = getWPConfig();
   if (!config) throw new Error('WordPress config not available');
   if (isMockWP(config)) {
+    const store = getMockStore();
     const normalizedUsername = data.username.trim().toLowerCase();
     const normalizedEmail = data.email.trim().toLowerCase();
     if (!normalizedUsername || !normalizedEmail || !data.password.trim()) {
@@ -563,24 +700,25 @@ export async function registerUserWP(data: { username: string; email: string; pa
     if (data.password.trim().length < 8) {
       throw new Error('Password must be at least 8 characters');
     }
-    if (mockRegisteredUsers.some((user) => user.username.toLowerCase() === normalizedUsername)) {
+    if (store.users.some((user) => user.username.toLowerCase() === normalizedUsername)) {
       throw new Error('That username is already registered');
     }
-    if (mockRegisteredUsers.some((user) => user.email.toLowerCase() === normalizedEmail)) {
+    if (store.users.some((user) => user.email.toLowerCase() === normalizedEmail)) {
       throw new Error('That email is already registered');
     }
 
     const newUser = {
-      user_id: mockRegisteredUsers.length + 1,
+      user_id: store.users.length + 1,
       username: data.username.trim(),
       email: data.email.trim(),
       password: data.password,
       display_name: data.display_name?.trim() || data.username.trim(),
       avatar: '',
-      is_admin: mockRegisteredUsers.length === 0,
+      is_admin: store.users.length === 0,
     };
 
-    mockRegisteredUsers = [...mockRegisteredUsers, newUser];
+    store.users = [...store.users, newUser];
+    saveMockStore(store);
     setMockWPUser(newUser);
 
     return mockDelay({ user_id: newUser.user_id, display_name: newUser.display_name });
@@ -604,7 +742,7 @@ export async function loginUserWP(data: { login: string; password: string }): Pr
   if (!config) throw new Error('WordPress config not available');
   if (isMockWP(config)) {
     const login = data.login.trim().toLowerCase();
-    const user = mockRegisteredUsers.find(
+    const user = getMockStore().users.find(
       (item) => item.username.toLowerCase() === login || item.email.toLowerCase() === login,
     );
     if (!user || user.password !== data.password) {
