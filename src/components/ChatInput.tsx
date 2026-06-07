@@ -7,9 +7,11 @@ interface ChatInputProps {
   onSend: (message: string, attachment?: { url: string; type: string; data?: string } | null) => void;
   disabled?: boolean;
   onNewChat?: () => void;
+  requireAuth?: boolean;
+  onRequireAuth?: () => void;
 }
 
-export function ChatInput({ onSend, disabled, onNewChat }: ChatInputProps) {
+export function ChatInput({ onSend, disabled, onNewChat, requireAuth = false, onRequireAuth }: ChatInputProps) {
   const [message, setMessage] = useState('');
   const [isPrivateMode, setIsPrivateMode] = useState(false);
   const [attachedFile, setAttachedFile] = useState<File | null>(null);
@@ -24,6 +26,12 @@ export function ChatInput({ onSend, disabled, onNewChat }: ChatInputProps) {
   const audioChunksRef = useRef<Blob[]>([]);
 
   const handleSend = () => {
+    if (requireAuth) {
+      onRequireAuth?.();
+      toast.error('Sign in or create an account first');
+      return;
+    }
+
     if (disabled || isUploading || isTranscribing) return;
 
     const cleanMessage = message.trim();
@@ -64,6 +72,15 @@ export function ChatInput({ onSend, disabled, onNewChat }: ChatInputProps) {
   };
 
   const handleAttachClick = () => fileInputRef.current?.click();
+
+  const handleProtectedAction = (callback: () => void) => {
+    if (requireAuth) {
+      onRequireAuth?.();
+      toast.error('Sign in or create an account first');
+      return;
+    }
+    callback();
+  };
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0] ?? null;
@@ -196,7 +213,7 @@ export function ChatInput({ onSend, disabled, onNewChat }: ChatInputProps) {
           <div className="flex items-center gap-1.5">
             <button
               type="button"
-              onClick={handleAttachClick}
+              onClick={() => handleProtectedAction(handleAttachClick)}
               disabled={isUploading}
               className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors disabled:opacity-30"
               title="Attach file"
@@ -207,7 +224,7 @@ export function ChatInput({ onSend, disabled, onNewChat }: ChatInputProps) {
             {onNewChat && (
               <button
                 type="button"
-                onClick={onNewChat}
+                onClick={() => onNewChat && handleProtectedAction(onNewChat)}
                 className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
                 title="New chat"
               >
@@ -217,7 +234,7 @@ export function ChatInput({ onSend, disabled, onNewChat }: ChatInputProps) {
 
             <button
               type="button"
-              onClick={handleMicToggle}
+              onClick={() => handleProtectedAction(() => { void handleMicToggle(); })}
               disabled={isTranscribing}
               className={`p-2 rounded-lg transition-colors ${
                 isRecording
@@ -230,7 +247,7 @@ export function ChatInput({ onSend, disabled, onNewChat }: ChatInputProps) {
 
             <button
               type="button"
-              onClick={handleTogglePrivate}
+              onClick={() => handleProtectedAction(handleTogglePrivate)}
               className={`p-2 rounded-lg transition-colors
                 ${isPrivateMode
                   ? 'text-primary bg-primary/10'
