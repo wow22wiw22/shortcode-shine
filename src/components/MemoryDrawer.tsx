@@ -11,6 +11,13 @@ interface MemoryDrawerProps {
 }
 
 type MemoryItem = WPMemory & { id: number | string; persona_id?: number };
+type MemoryItem = {
+  id: number | string;
+  persona_id: number;
+  memory_text: string;
+  enabled: number;
+  created_at?: string;
+};
 
 /**
  * Admin-only memory manager (v12.3 plugin feature).
