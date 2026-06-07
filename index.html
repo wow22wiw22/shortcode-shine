@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <!-- TODO: Set the document title to the name of your application -->
-    <title>Lovable App</title>
+    <title>VERSACE22 AI</title>
     <meta name="description" content="Analyzes and troubleshoots widget interface issues in WordPress, integrating with AI chat personas.">
     <meta name="author" content="Lovable" />
 
@@ -25,28 +25,7 @@
 </head>
 
   <body>
-    <div id="versace22-chat-root"></div>
-    <script>
-      window.versace22_chat = {
-        ajaxurl: '/wp-mock/admin-ajax.php',
-        nonce: 'dev-nonce',
-        admin_nonce: 'dev-admin-nonce',
-        login_nonce: 'dev-login-nonce',
-        register_nonce: 'dev-register-nonce',
-        forgot_password_nonce: 'dev-forgot-password-nonce',
-        persona_id: '1',
-        session_id: 'sess_lovable_preview',
-        user_logged_in: false,
-        user_id: 0,
-        is_admin: false,
-        user_display_name: '',
-        user_email: '',
-        user_avatar: '',
-        logout_url: '',
-        google_login_url: '/wp-login.php?loginSocial=google',
-        lost_password_url: '/wp-login.php?action=lostpassword'
-      };
-    </script>
-    <script type="module" src="/src/wp-main.tsx"></script>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
