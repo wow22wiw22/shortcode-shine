@@ -332,6 +332,7 @@ const Index = () => {
         onSignOut={signOut}
         isLoggedIn={wpLoggedIn}
         onOpenAuth={() => setWpAuthOpen(true)}
+        requireAuthForNewChat={requireWordPressAuth && !wpLoggedIn}
       />
 
         <main className="flex-1 flex flex-col min-w-0 relative">
