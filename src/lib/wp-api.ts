@@ -821,3 +821,76 @@ export function getWPUserInfo(): { isLoggedIn: boolean; displayName: string } {
   if (w.versace22_chat) return { isLoggedIn: false, displayName: 'Guest' };
   return { isLoggedIn: false, displayName: 'Guest' };
 }
+
+// ============================================================
+// Additional WP bridge wrappers — full plugin endpoint coverage
+// ============================================================
+
+export async function updateProfileWP(fields: {
+  display_name?: string;
+  email?: string;
+  bio?: string;
+  avatar_url?: string;
+}): Promise<any> {
+  return wpFetch('aicpp_update_profile', fields as any);
+}
+
+export async function getLeaderboardWP(): Promise<any> {
+  return wpFetch('aicpp_get_leaderboard', {});
+}
+
+export async function getReferralDataWP(): Promise<any> {
+  return wpFetch('aicpp_get_referral_data', {});
+}
+
+export async function searchMessagesWP(query: string): Promise<any> {
+  return wpFetch('aicpp_search_messages', { query });
+}
+
+export async function updateProjectWP(
+  id: number,
+  fields: { name?: string; description?: string; custom_instructions?: string },
+): Promise<any> {
+  return wpFetch('aicpp_update_project', { project_id: id, ...fields } as any, true);
+}
+
+export async function attachProjectFileWP(projectId: number, file: Blob): Promise<any> {
+  return wpFetch('aicpp_attach_project_file', { project_id: projectId, file }, true);
+}
+
+export async function detachProjectFileWP(projectId: number, fileId: number): Promise<any> {
+  return wpFetch('aicpp_detach_project_file', { project_id: projectId, file_id: fileId }, true);
+}
+
+export async function assignConversationProjectWP(
+  conversationId: string,
+  projectId: number,
+): Promise<any> {
+  return wpFetch(
+    'aicpp_assign_conversation_project',
+    { conversation_id: conversationId, project_id: projectId },
+    true,
+  );
+}
+
+export async function saveArtifactWP(payload: {
+  title: string;
+  type: string;
+  content: string;
+  language?: string;
+  conversation_id?: string;
+}): Promise<any> {
+  return wpFetch('aicpp_save_artifact', payload as any, true);
+}
+
+export async function getArtifactWP(id: number): Promise<any> {
+  return wpFetch('aicpp_get_artifact', { artifact_id: id }, true);
+}
+
+export async function listArtifactsWP(): Promise<any> {
+  return wpFetch('aicpp_list_artifacts', {}, true);
+}
+
+export async function deleteArtifactWP(id: number): Promise<void> {
+  await wpFetch('aicpp_delete_artifact', { artifact_id: id }, true);
+}
