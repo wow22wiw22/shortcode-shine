@@ -954,3 +954,62 @@ export async function listArtifactsWP(): Promise<any> {
 export async function deleteArtifactWP(id: number): Promise<void> {
   await wpFetch('aicpp_delete_artifact', { artifact_id: id }, true);
 }
+
+// ============================================================
+// v12: Persona admin endpoints (admin-only, manage_options)
+// ============================================================
+
+export async function getPersonaWP(id: number): Promise<any> {
+  return wpFetch('aicpp_get_persona', { persona_id: id }, true);
+}
+
+export async function savePersonaWP(payload: {
+  id?: number;
+  name: string;
+  description?: string;
+  model?: string;
+  visibility?: 'public' | 'private';
+  avatar_initials?: string;
+  avatar_color?: string;
+  system_prompt?: string;
+}): Promise<{ id: number }> {
+  return wpFetch('aicpp_save_persona', payload as any, true);
+}
+
+export async function deletePersonaWP(id: number): Promise<void> {
+  await wpFetch('aicpp_delete_persona', { persona_id: id }, true);
+}
+
+export async function assignPersonaWP(personaId: number, userId: number): Promise<void> {
+  await wpFetch('aicpp_assign_persona', { persona_id: personaId, user_id: userId }, true);
+}
+
+export async function unassignPersonaWP(personaId: number, userId: number): Promise<void> {
+  await wpFetch('aicpp_unassign_persona', { persona_id: personaId, user_id: userId }, true);
+}
+
+export async function bulkAssignPersonaWP(personaId: number, userIds: number[]): Promise<void> {
+  await wpFetch(
+    'aicpp_bulk_assign',
+    { persona_id: personaId, user_ids: JSON.stringify(userIds) },
+    true,
+  );
+}
+
+export async function getUserPersonasWP(userId: number): Promise<any> {
+  return wpFetch('aicpp_get_user_personas', { user_id: userId }, true);
+}
+
+export async function getPersonaUsersWP(personaId: number): Promise<any> {
+  return wpFetch('aicpp_get_persona_users', { persona_id: personaId }, true);
+}
+
+export async function searchUsersWP(query: string): Promise<any> {
+  return wpFetch('aicpp_search_users', { query }, true);
+}
+
+// TTS alias matching the doc-friendly name
+export async function speakWP(text: string, voice = 'alloy'): Promise<string> {
+  const data = await wpFetch('aicpp_speak', { text, voice });
+  return data.audio as string;
+}
