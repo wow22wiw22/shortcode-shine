@@ -478,9 +478,14 @@ async function wpFetch(action: string, fields: Record<string, string | Blob | nu
     }
   }
 
+  // v12: resolve nonce from the manifest when possible
+  const nonceFromManifest = resolveNonceForAction(action);
+  const nonce = nonceFromManifest
+    || (useAdminNonce ? (config.adminNonce || config.nonce) : config.nonce);
+
   const formData = new FormData();
   formData.append('action', action);
-  formData.append('nonce', useAdminNonce ? (config.adminNonce || config.nonce) : config.nonce);
+  formData.append('nonce', nonce);
   for (const [key, value] of Object.entries(fields)) {
     if (value === undefined || value === null) continue;
     formData.append(key, typeof value === 'number' ? String(value) : (value as any));
@@ -491,6 +496,24 @@ async function wpFetch(action: string, fields: Record<string, string | Blob | nu
   const result = await response.json();
   if (!result.success) throw new Error(result.data?.message || `${action} failed`);
   return result.data;
+}
+
+/**
+ * Walk the v12 endpoint manifest to find which nonce group an action belongs to,
+ * then return the matching nonce from window.versace22_chat.nonces.
+ */
+function resolveNonceForAction(action: string): string {
+  const eps = getEndpoints();
+  const nonces = getNonces();
+  for (const group of Object.keys(eps)) {
+    for (const key of Object.keys(eps[group])) {
+      const entry = eps[group][key];
+      if (entry?.action === action && entry.nonce && nonces[entry.nonce]) {
+        return nonces[entry.nonce];
+      }
+    }
+  }
+  return '';
 }
 
 export function isWordPress(): boolean {
