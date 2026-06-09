@@ -1,11 +1,11 @@
 import { useState } from 'react';
-import { MessageCircle, Trophy, User, Gift, Globe, ChevronDown, Search, Plus, X, LogOut, Sun, Moon, Sparkles, Brain } from 'lucide-react';
+import { MessageCircle, Trophy, User, Gift, Globe, ChevronDown, Search, Plus, X, LogOut, Sun, Moon, Sparkles, Brain, Wrench } from 'lucide-react';
 import { Conversation, Persona } from '@/lib/types';
 import { ConversationFolders } from './ConversationFolders';
 import { useTheme } from '@/hooks/useTheme';
 import { ProjectsSection } from './ProjectsSection';
 
-export type SidebarView = 'chat' | 'leaderboard' | 'profile' | 'refer' | 'personas' | 'memories';
+export type SidebarView = 'chat' | 'leaderboard' | 'profile' | 'refer' | 'personas' | 'memories' | 'studio';
 
 interface ChatSidebarProps {
   conversations: Conversation[];
@@ -33,6 +33,7 @@ const navItems = [
   { icon: User, label: 'Profile', action: 'profile' },
   { icon: Gift, label: 'Refer for rewards', action: 'refer' },
   { icon: Brain, label: 'Memories', action: 'memories' },
+  { icon: Wrench, label: 'Studio', action: 'studio' },
   { icon: Globe, label: 'Contact us', expandable: true, action: 'findus' },
 ];
 
