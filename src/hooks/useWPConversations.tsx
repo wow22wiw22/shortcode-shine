@@ -6,6 +6,7 @@ import {
   WPConversation,
   parseArtifactsFromContent,
 } from '@/lib/wp-api';
+import { setActiveConversation } from '@/lib/active-conversation';
 import { Message, Conversation } from '@/lib/types';
 
 /**
@@ -49,6 +50,7 @@ export function useWPConversations() {
     try {
       const data = await loadConversationFromWP(Number(conversationId));
       if (!data) return [];
+      setActiveConversation(Number(conversationId));
       return data.messages.map((m, idx) => ({
         id: `wp-msg-${conversationId}-${idx}`,
         role: m.role as 'user' | 'assistant',

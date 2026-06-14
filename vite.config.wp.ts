@@ -14,9 +14,14 @@ export default defineConfig({
     outDir: "wordpress-assets",
     rollupOptions: {
       input: path.resolve(__dirname, "src/wp-main.tsx"),
+      // MISS F: bridge enqueues with empty deps[] — bundle must self-contain
+      // React/ReactDOM and ship as a single chunk (bridge only loads one JS).
+      external: [],
       output: {
         entryFileNames: "Assets/index.js",
         assetFileNames: "Assets/index[extname]",
+        manualChunks: undefined,
+        inlineDynamicImports: true,
       },
     },
   },

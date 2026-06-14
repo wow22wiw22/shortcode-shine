@@ -72,13 +72,62 @@ const WPApp = () => (
   </QueryClientProvider>
 );
 
-// Mount to our scoped container
-const container = document.getElementById("versace22-chat-root");
-if (container) {
-  createRoot(container).render(<WPApp />);
-} else {
-  const fallback = document.createElement("div");
-  fallback.id = "versace22-chat-root";
-  document.body.appendChild(fallback);
-  createRoot(fallback).render(<WPApp />);
+/**
+ * Resilient mount — handles:
+ *  - Bridge root #versace22-chat-root (primary)
+ *  - Plugin standalone fallback #aicpp-standalone-root-*
+ *  - Generic #root (local dev)
+ *  - Themes/page builders that inject the wrapper after DOMContentLoaded (MutationObserver)
+ *  - Clears any server-side "Loading…" fallback markup before mount (MISS H)
+ */
+function aicppFindMount(): HTMLElement | null {
+  return (
+    document.getElementById("versace22-chat-root") ||
+    document.querySelector<HTMLElement>('[id^="aicpp-standalone-root-"]') ||
+    document.getElementById("root")
+  );
 }
+
+function aicppMount(el: HTMLElement) {
+  if ((el as any).__aicppMounted) return;
+  (el as any).__aicppMounted = true;
+  el.innerHTML = "";
+  createRoot(el).render(<WPApp />);
+  try {
+    const h = (window as any).versace22_chat;
+    const supported = ["v12", "v12.3", "v13"];
+    if (h?.bridge_version && !supported.includes(String(h.bridge_version))) {
+      // eslint-disable-next-line no-console
+      console.warn(
+        `[aicpp] Bridge version ${h.bridge_version} not in supported set ${supported.join(",")}. UI will fall back to the static endpoint map.`,
+      );
+    }
+  } catch {}
+}
+
+function aicppBoot() {
+  const el = aicppFindMount();
+  if (el) { aicppMount(el); return; }
+
+  const obs = new MutationObserver(() => {
+    const found = aicppFindMount();
+    if (found) { obs.disconnect(); aicppMount(found); }
+  });
+  obs.observe(document.documentElement, { childList: true, subtree: true });
+  setTimeout(() => obs.disconnect(), 10000);
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", aicppBoot, { once: true });
+  } else {
+    // Last-resort fallback so local dev / unmounted previews still render
+    setTimeout(() => {
+      if (aicppFindMount()) return;
+      const fb = document.createElement("div");
+      fb.id = "versace22-chat-root";
+      document.body.appendChild(fb);
+      aicppMount(fb);
+    }, 250);
+  }
+}
+
+aicppBoot();

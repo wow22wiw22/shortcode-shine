@@ -14,7 +14,12 @@ if (!defined('ABSPATH')) {
 // Add the chat container div to the footer
 if (!function_exists('versace22_render_chat_container')) {
     function versace22_render_chat_container() {
-        echo '<div id="versace22-chat-root" style="position:fixed;top:0;left:0;z-index:99999;width:100%;height:100dvh;"></div>';
+        // MISS H: include a server-side fallback so mount failures degrade
+        // gracefully instead of showing a pure-white screen.
+        echo '<div id="versace22-chat-root" style="position:fixed;top:0;left:0;z-index:99999;width:100%;height:100dvh;">'
+            . '<noscript style="display:block;padding:24px;font-family:sans-serif">This chat requires JavaScript.</noscript>'
+            . '<div class="aicpp-boot-fallback" style="padding:24px;font-family:sans-serif;color:#555">Loading…</div>'
+            . '</div>';
     }
     add_action('wp_footer', 'versace22_render_chat_container');
 }

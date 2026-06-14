@@ -492,9 +492,23 @@ async function wpFetch(action: string, fields: Record<string, string | Blob | nu
   }
 
   const response = await fetch(config.ajaxurl, { method: 'POST', body: formData });
+  // MISS D: nonce-stale auto-recovery. WP returns 403 or text "-1" when expired.
+  const text = await response.text();
+  if ((response.status === 403 || text.trim() === '-1') && !(fields as any).__retried) {
+    try { sessionStorage.setItem('aicpp_nonce_stale', '1'); } catch {}
+    // Reload once to let WP re-localize fresh nonces via the bridge.
+    if (!sessionStorage.getItem('aicpp_reloaded_for_nonce')) {
+      sessionStorage.setItem('aicpp_reloaded_for_nonce', '1');
+      location.reload();
+      throw new Error('Refreshing session…');
+    }
+  }
   if (!response.ok) throw new Error(`Server error: ${response.status}`);
-  const result = await response.json();
+  let result: any;
+  try { result = JSON.parse(text); } catch { throw new Error('Bad response'); }
   if (!result.success) throw new Error(result.data?.message || `${action} failed`);
+  // Clear the reload guard on the first successful call
+  try { sessionStorage.removeItem('aicpp_reloaded_for_nonce'); } catch {}
   return result.data;
 }
 
@@ -533,7 +547,26 @@ export function getWPPersonaId(): number {
 }
 
 export function getWPSessionId(): string {
-  return getWPConfig()?.sessionId ?? '';
+  // MISS B: persist session_id across reloads so conversations continue.
+  try {
+    const SESSION_KEY = 'aicpp_session_id';
+    let s = localStorage.getItem(SESSION_KEY);
+    if (!s) {
+      s = getWPConfig()?.sessionId
+        || ('sess_' + Math.random().toString(36).slice(2) + Date.now().toString(36));
+      localStorage.setItem(SESSION_KEY, s);
+    }
+    return s;
+  } catch {
+    return getWPConfig()?.sessionId ?? '';
+  }
+}
+
+/** Start a fresh session (clears persistence). */
+export function newWPSession(): string {
+  const s = 'sess_' + Math.random().toString(36).slice(2) + Date.now().toString(36);
+  try { localStorage.setItem('aicpp_session_id', s); } catch {}
+  return s;
 }
 
 export function getWPUserId(): number {
