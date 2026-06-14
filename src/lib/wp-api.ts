@@ -533,7 +533,26 @@ export function getWPPersonaId(): number {
 }
 
 export function getWPSessionId(): string {
-  return getWPConfig()?.sessionId ?? '';
+  // MISS B: persist session_id across reloads so conversations continue.
+  try {
+    const SESSION_KEY = 'aicpp_session_id';
+    let s = localStorage.getItem(SESSION_KEY);
+    if (!s) {
+      s = getWPConfig()?.sessionId
+        || ('sess_' + Math.random().toString(36).slice(2) + Date.now().toString(36));
+      localStorage.setItem(SESSION_KEY, s);
+    }
+    return s;
+  } catch {
+    return getWPConfig()?.sessionId ?? '';
+  }
+}
+
+/** Start a fresh session (clears persistence). */
+export function newWPSession(): string {
+  const s = 'sess_' + Math.random().toString(36).slice(2) + Date.now().toString(36);
+  try { localStorage.setItem('aicpp_session_id', s); } catch {}
+  return s;
 }
 
 export function getWPUserId(): number {
