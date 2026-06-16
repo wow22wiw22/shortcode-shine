@@ -171,6 +171,22 @@ export function isLoggedIn(): boolean { return !!hs().user_logged_in; }
 export function isAdmin(): boolean { return !!hs().is_admin; }
 export function personaId(): string { return String(hs().persona_id ?? "0"); }
 
+/**
+ * Report B GAP 1: respect the `transport` field. The bridge ships
+ * `transport: 'admin-ajax'` and `rest_url: ''`, so the UI must never
+ * try to build a REST URL. This helper lets future code ask before
+ * assuming REST exists.
+ */
+export function transport(): "admin-ajax" | "rest" {
+  const h = hs();
+  if (h.transport === "rest" && h.rest_url) return "rest";
+  return "admin-ajax";
+}
+export function hasRest(): boolean {
+  const h = hs();
+  return transport() === "rest" && !!h.rest_url;
+}
+
 /** MISS B: persist session across reloads so conversations continue. */
 const SESSION_KEY = "aicpp_session_id";
 export function sessionId(): string {

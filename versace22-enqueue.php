@@ -566,12 +566,30 @@ if (!function_exists('versace22_render_app')) {
                 . 'max-width:none!important;max-height:none!important;margin:0!important;padding:0!important;border:0!important;'
                 . 'overflow:hidden!important;z-index:2147483000!important;background:#fff!important;}'
                 . '#' . $root_id . '{width:100%!important;height:100%!important;}</style>';
-            $wrapper = '<div id="' . esc_attr($wrapper_id) . '" data-fullscreen="1"><div id="' . esc_attr($root_id) . '"></div></div>';
+            // MISS H: server-side boot fallback — if JS fails or the mount never runs,
+            // the user sees diagnosable text instead of a pure-white fullscreen page.
+            $wrapper = '<div id="' . esc_attr($wrapper_id) . '" data-fullscreen="1">'
+                . '<div id="' . esc_attr($root_id) . '">'
+                . '<noscript style="display:block;padding:24px;font-family:sans-serif">'
+                . esc_html__('This chat requires JavaScript.', 'aicpp')
+                . '</noscript>'
+                . '<div class="aicpp-boot-fallback" style="padding:24px;color:#555;font-family:sans-serif">'
+                . esc_html__('Loading…', 'aicpp')
+                . '</div>'
+                . '</div></div>';
         } else {
             $inline_css = '<style id="versace22-chat-inline-css">'
                 . '#' . $wrapper_id . '{position:relative;width:100%;}'
                 . '#' . $root_id . '{width:100%;height:100%;}</style>';
-            $wrapper = '<div id="' . esc_attr($wrapper_id) . '" data-fullscreen="0" style="height:' . $safe_height . ';"><div id="' . esc_attr($root_id) . '"></div></div>';
+            $wrapper = '<div id="' . esc_attr($wrapper_id) . '" data-fullscreen="0" style="height:' . $safe_height . ';">'
+                . '<div id="' . esc_attr($root_id) . '">'
+                . '<noscript style="display:block;padding:24px;font-family:sans-serif">'
+                . esc_html__('This chat requires JavaScript.', 'aicpp')
+                . '</noscript>'
+                . '<div class="aicpp-boot-fallback" style="padding:24px;color:#555;font-family:sans-serif">'
+                . esc_html__('Loading…', 'aicpp')
+                . '</div>'
+                . '</div></div>';
         }
         return $inline_css . $wrapper;
     }
