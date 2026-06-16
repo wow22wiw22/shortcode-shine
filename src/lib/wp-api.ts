@@ -480,7 +480,13 @@ async function wpFetch(action: string, fields: Record<string, string | Blob | nu
 
   // v12: resolve nonce from the manifest when possible
   const nonceFromManifest = resolveNonceForAction(action);
+  // Per-action nonce fallback so login/register hit the right nonce group
+  // even when the bridge didn't ship an endpoint manifest (older bridge).
+  let actionFallbackNonce = '';
+  if (action === 'aicpp_login_user') actionFallbackNonce = config.loginNonce || '';
+  else if (action === 'aicpp_register_user') actionFallbackNonce = config.registerNonce || '';
   const nonce = nonceFromManifest
+    || actionFallbackNonce
     || (useAdminNonce ? (config.adminNonce || config.nonce) : config.nonce);
 
   const formData = new FormData();
@@ -820,18 +826,15 @@ export async function registerUserWP(data: { username: string; email: string; pa
 
     return mockDelay({ user_id: newUser.user_id, display_name: newUser.display_name });
   }
-  const formData = new FormData();
-  formData.append('action', 'aicpp_register_user');
-  formData.append('nonce', config.registerNonce || config.nonce);
-  formData.append('username', data.username);
-  formData.append('email', data.email);
-  formData.append('password', data.password);
-  if (data.display_name) formData.append('display_name', data.display_name);
-  const response = await fetch(config.ajaxurl, { method: 'POST', body: formData });
-  if (!response.ok) throw new Error(`Registration error: ${response.status}`);
-  const result = await response.json();
-  if (!result.success) throw new Error(result.data?.message || 'Registration failed');
-  return result.data;
+  // Route through wpFetch so the manifest resolves the correct `aicpp_register` nonce group
+  // (Report mismatch #3 / login+register nonce-group alignment).
+  const fields: Record<string, string> = {
+    username: data.username,
+    email: data.email,
+    password: data.password,
+  };
+  if (data.display_name) fields.display_name = data.display_name;
+  return wpFetch('aicpp_register_user', fields);
 }
 
 export async function loginUserWP(data: { login: string; password: string }): Promise<{ user_id: number; display_name: string; message: string }> {
@@ -848,16 +851,8 @@ export async function loginUserWP(data: { login: string; password: string }): Pr
     setMockWPUser(user);
     return mockDelay({ user_id: user.user_id, display_name: user.display_name, message: 'Signed in' });
   }
-  const formData = new FormData();
-  formData.append('action', 'aicpp_login_user');
-  formData.append('nonce', config.loginNonce || config.nonce);
-  formData.append('login', data.login);
-  formData.append('password', data.password);
-  const response = await fetch(config.ajaxurl, { method: 'POST', body: formData });
-  if (!response.ok) throw new Error(`Login error: ${response.status}`);
-  const result = await response.json();
-  if (!result.success) throw new Error(result.data?.message || 'Login failed');
-  return result.data;
+  // Route through wpFetch so the manifest resolves the correct `aicpp_login` nonce group.
+  return wpFetch('aicpp_login_user', { login: data.login, password: data.password });
 }
 
 export async function getMemoriesWP(userId: number): Promise<WPMemory[]> {

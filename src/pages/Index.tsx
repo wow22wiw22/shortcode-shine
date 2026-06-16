@@ -23,6 +23,7 @@ import {
   parseArtifactsFromContent,
   ParsedArtifact,
 } from '@/lib/wp-api';
+import { setActiveConversation } from '@/lib/active-conversation';
 import { useAuth } from '@/hooks/useAuth';
 import { useConversations } from '@/hooks/useConversations';
 import { useWPConversations } from '@/hooks/useWPConversations';
@@ -210,9 +211,11 @@ const Index = () => {
         if (isMainChatMode) {
           const result = await sendMainChatToWP(fullText, sessionId, attachment);
           replyContent = result.message;
+          if (result.conversation_id) setActiveConversation(Number(result.conversation_id));
         } else if (selectedPersona) {
           const result = await sendPersonaChatToWP(fullText, Number(selectedPersona.id), sessionId, attachment);
           replyContent = result.message;
+          if (result.conversation_id) setActiveConversation(Number(result.conversation_id));
         } else {
           throw new Error('No persona or main character selected');
         }
