@@ -11,6 +11,9 @@ if (!defined('AI_CHAT_PERSONA_PRO_VERSION')) {
  * Author: AI Pipeline Pro
  */
 if (!defined('ABSPATH')) exit;
+// MISS I: hard guard against duplicate plugin copies (e.g. /public/ and /wordpress-assets/
+// both deployed) — without this, a second include yields a fatal "Cannot redeclare class".
+if (class_exists('AI_Chat_Persona_Pro_Ultimate')) { return; }
 // VERSACE22 INTEGRATION: Soft-load bridge to prevent fatal on missing dependency
 $versace22_bridge_path = plugin_dir_path(__FILE__) . 'versace22-enqueue.php';
 if (file_exists($versace22_bridge_path)) {
